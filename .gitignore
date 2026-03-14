@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.ami/
+*.db
+*.tgz
+.DS_Store
+tmp/
+*.pdf
+*.png
