@@ -1,7 +1,28 @@
 {
   "name": "ami",
   "version": "0.1.0",
-  "description": "Software supply chain security tool for npm packages",
+  "description": "CLI and GitHub Action for npm supply chain security reviews",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gorira-tatsu/ami.git"
+  },
+  "homepage": "https://github.com/gorira-tatsu/ami",
+  "bugs": {
+    "url": "https://github.com/gorira-tatsu/ami/issues"
+  },
+  "keywords": [
+    "security",
+    "supply-chain",
+    "npm",
+    "sbom",
+    "license",
+    "dependencies",
+    "github-action",
+    "cli"
+  ],
+  "engines": {
+    "bun": ">=1.2.0"
+  },
   "type": "module",
   "bin": {
     "ami": "./src/index.ts"
