@@ -28,6 +28,32 @@ export interface AnalysisResult {
   report: Report;
 }
 
+export async function buildReportForPackageSpec(
+  name: string,
+  versionRange: string,
+  options: AnalyzerOptions,
+): Promise<AnalysisResult> {
+  const graph = await resolveDependencyGraph(name, versionRange, {
+    maxDepth: options.depth,
+    concurrency: options.concurrency ?? 5,
+  });
+
+  const vulnerabilities = await scanVulnerabilities(
+    graph,
+    options.concurrency ?? 5,
+    !options.noCache,
+  ).catch(() => [] as VulnerabilityResult[]);
+
+  const { reportOptions } = await runAnalysisPhases(graph, options).catch(() => ({
+    reportOptions: {},
+    sharedPackuments: new Map(),
+    lowTrustCount: 0,
+  }));
+
+  const report = buildReport(graph, vulnerabilities, reportOptions);
+  return { graph, vulnerabilities, report };
+}
+
 export async function buildReportFromPackageJson(
   pkg: {
     name?: string;
@@ -99,7 +125,6 @@ export async function buildReportFromPackageJson(
     edges: allEdges,
   };
 
-  // Vulnerability scan
   const vulnerabilities = await scanVulnerabilities(
     graph,
     options.concurrency ?? 5,

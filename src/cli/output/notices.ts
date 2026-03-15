@@ -46,6 +46,14 @@ export function renderNotices(report: Report): void {
   lines.push("---------------");
   for (const entry of report.entries) {
     lines.push(`${entry.id} - ${entry.license ?? "UNKNOWN"}`);
+    if (entry.licenseDetails && entry.licenseDetails.length > 0) {
+      for (const detail of entry.licenseDetails) {
+        const japanese = detail.japaneseTextUrl ? ` | JA: ${detail.japaneseTextUrl}` : "";
+        lines.push(
+          `  - ${detail.spdxId} | OSI: ${detail.osiApproved === true ? "approved" : detail.osiApproved === false ? "not-approved" : "unknown"} | FSF: ${detail.fsfStatus} | EN: ${detail.originalTextUrl}${japanese}`,
+        );
+      }
+    }
   }
 
   console.log(lines.join("\n"));
@@ -63,6 +71,7 @@ export function renderNoticesJson(report: Report): void {
       name: e.name,
       version: e.version,
       license: e.license,
+      licenseDetails: e.licenseDetails,
     })),
     contextNotes: contextNotes.map((cn) => ({
       license: cn.license,

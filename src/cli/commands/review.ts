@@ -1,10 +1,20 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
-import { buildReportFromPackageJson } from "../../core/analyzer.js";
-import { computeDiff } from "../../core/diff/reporter.js";
+import { buildReportForPackageSpec } from "../../core/analyzer.js";
+import type { DependencyDiff } from "../../core/diff/types.js";
+import { parseLockfile } from "../../core/lockfile/parser.js";
 import { setNpmCacheEnabled } from "../../core/registry/npm-client.js";
+import {
+  buildReviewDiff,
+  collectDirectDependencies,
+  diffDirectDependencies,
+  type ReviewPackageAnalysis,
+  resolveDirectDependencyVersions,
+} from "../../core/review/fast-path.js";
 import { getDatabase } from "../../core/store/database.js";
+import { mapConcurrent } from "../../utils/concurrency.js";
 import { fetchWithRetry } from "../../utils/http.js";
 import { logger, setLogLevel } from "../../utils/logger.js";
 import type { AnalyzeOptions } from "../options.js";
@@ -57,8 +67,6 @@ export async function reviewCommand(target: string, options: ReviewOptions): Pro
     process.exit(1);
   }
 
-  if (spinner) spinner.text = "Analyzing base dependencies...";
-
   const analyzerOptions = {
     depth: options.depth,
     concurrency: options.concurrency,
@@ -67,21 +75,76 @@ export async function reviewCommand(target: string, options: ReviewOptions): Pro
     security: options.security,
   };
 
-  const baseResult = await buildReportFromPackageJson(
-    basePkg as Parameters<typeof buildReportFromPackageJson>[0],
-    analyzerOptions,
+  const baseLockfile = await loadAdjacentLockfile(target, baseRef);
+  const headLockfile = await loadAdjacentLockfile(target, headRef);
+
+  const baseDeps = collectDirectDependencies(
+    basePkg as Parameters<typeof collectDirectDependencies>[0],
+    options.dev,
   );
-
-  if (spinner) spinner.text = "Analyzing head dependencies...";
-
-  const headResult = await buildReportFromPackageJson(
-    headPkg as Parameters<typeof buildReportFromPackageJson>[0],
-    analyzerOptions,
+  const headDeps = collectDirectDependencies(
+    headPkg as Parameters<typeof collectDirectDependencies>[0],
+    options.dev,
   );
+  const baseResolved = resolveDirectDependencyVersions(baseDeps, baseLockfile);
+  const headResolved = resolveDirectDependencyVersions(headDeps, headLockfile);
+  const changes = diffDirectDependencies(baseDeps, headDeps, baseResolved, headResolved);
 
-  if (spinner) spinner.succeed("Analysis complete");
+  let diff: DependencyDiff;
+  if (changes.length === 0) {
+    if (spinner) spinner.succeed("No direct dependency changes");
+    diff = buildReviewDiff([], new Map(), new Map());
+  } else {
+    if (spinner) spinner.text = `Analyzing ${changes.length} changed direct dependencies...`;
 
-  const diff = computeDiff(baseResult.report, headResult.report);
+    const baseAnalyses = new Map<string, ReviewPackageAnalysis>();
+    const headAnalyses = new Map<string, ReviewPackageAnalysis>();
+    const analysisCache = new Map<string, Awaited<ReturnType<typeof buildReportForPackageSpec>>>();
+
+    await mapConcurrent(changes, options.concurrency ?? 5, async (change) => {
+      if (change.changeType === "removed" || change.changeType === "updated") {
+        const spec = change.baseResolved ?? change.baseDeclared;
+        if (spec) {
+          const result = await analyzePackageWithCache(
+            change.name,
+            spec,
+            analyzerOptions,
+            analysisCache,
+          );
+          baseAnalyses.set(change.name, {
+            name: change.name,
+            declaredVersion: change.baseDeclared ?? null,
+            resolvedVersion:
+              (result.report.root.split("@").slice(1).join("@") || change.baseResolved) ?? null,
+            report: result.report,
+          });
+        }
+      }
+
+      if (change.changeType === "added" || change.changeType === "updated") {
+        const spec = change.headResolved ?? change.headDeclared;
+        if (spec) {
+          const result = await analyzePackageWithCache(
+            change.name,
+            spec,
+            analyzerOptions,
+            analysisCache,
+          );
+          headAnalyses.set(change.name, {
+            name: change.name,
+            declaredVersion: change.headDeclared ?? null,
+            resolvedVersion:
+              (result.report.root.split("@").slice(1).join("@") || change.headResolved) ?? null,
+            report: result.report,
+          });
+        }
+      }
+    });
+
+    if (spinner) spinner.succeed("Analysis complete");
+    diff = buildReviewDiff(changes, baseAnalyses, headAnalyses);
+  }
+
   const markdown = renderMarkdownComment(diff);
 
   // Post to GitHub PR if credentials available
@@ -106,11 +169,31 @@ export async function reviewCommand(target: string, options: ReviewOptions): Pro
   }
 }
 
+async function analyzePackageWithCache(
+  name: string,
+  versionSpec: string,
+  options: Parameters<typeof buildReportForPackageSpec>[2],
+  cache: Map<string, Awaited<ReturnType<typeof buildReportForPackageSpec>>>,
+): Promise<Awaited<ReturnType<typeof buildReportForPackageSpec>>> {
+  const key = `${name}@${versionSpec}`;
+  const cached = cache.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  const result = await buildReportForPackageSpec(name, versionSpec, options);
+  cache.set(key, result);
+  return result;
+}
+
 async function loadPackageJson(filePath: string, ref?: string): Promise<Record<string, unknown>> {
+  const content = await loadFileAtRefOrPath(filePath, ref);
+  return JSON.parse(content);
+}
+
+async function loadFileAtRefOrPath(filePath: string, ref?: string): Promise<string> {
   if (!ref) {
-    // Read from working tree
-    const content = await readFile(filePath, "utf-8");
-    return JSON.parse(content);
+    return readFile(filePath, "utf-8");
   }
 
   // Try as git ref first
@@ -122,15 +205,50 @@ async function loadPackageJson(filePath: string, ref?: string): Promise<Record<s
     const text = await new Response(proc.stdout).text();
     const exitCode = await proc.exited;
     if (exitCode === 0 && text.trim()) {
-      return JSON.parse(text);
+      return text;
     }
   } catch {
     // Not a git ref, try as file path
   }
 
   // Try as file path
-  const content = await readFile(ref, "utf-8");
-  return JSON.parse(content);
+  return readFile(ref, "utf-8");
+}
+
+async function loadAdjacentLockfile(
+  packageJsonPath: string,
+  ref?: string,
+): Promise<ReturnType<typeof parseLockfile> | null> {
+  if (ref && (await isReadableFile(ref))) {
+    ref = undefined;
+  }
+
+  const prefix = dirname(packageJsonPath);
+  const candidates = [
+    join(prefix === "." ? "" : prefix, "bun.lock"),
+    join(prefix === "." ? "" : prefix, "package-lock.json"),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const content = await loadFileAtRefOrPath(candidate, ref);
+      const parsed = parseLockfile(candidate, content);
+      if (parsed && parsed.packages.size > 0) {
+        return parsed;
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
+async function isReadableFile(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function postOrUpdateComment(

@@ -3,6 +3,7 @@ import type { LicenseCategory } from "../graph/types.js";
 import type { IncompatiblePair } from "../license/compatibility-types.js";
 import type { ContaminationPath } from "../license/contamination.js";
 import type { EnhancedLicense } from "../license/enhanced-checker.js";
+import type { LicenseReference } from "../license/metadata.js";
 import type { PhantomDependency } from "../phantom/scanner.js";
 import type { PinningReport } from "../pinning/analyzer.js";
 import type { ProvenanceResult } from "../provenance/checker.js";
@@ -17,6 +18,7 @@ export interface ReportEntry {
   depth: number;
   license: string | null;
   licenseCategory: LicenseCategory;
+  licenseDetails?: LicenseReference[];
   vulnerabilities: ReportVulnerability[];
   advisories?: NormalizedAdvisory[];
   trustScore?: TrustScore;

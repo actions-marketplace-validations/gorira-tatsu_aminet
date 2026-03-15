@@ -95,6 +95,7 @@ program
   .option("-c, --concurrency <number>", "Maximum concurrent requests", parseInt)
   .option("--dev", "Include devDependencies")
   .option("--no-cache", "Skip cache reads")
+  .option("--security", "Enable security deep analysis")
   .option("-v, --verbose", "Verbose logging")
   .option("--ci", "CI mode (no spinner)")
   .action(reviewCommand);

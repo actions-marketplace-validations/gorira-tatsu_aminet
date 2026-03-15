@@ -4,6 +4,8 @@ import type { IncompatiblePair } from "../license/compatibility-types.js";
 import type { ContaminationPath } from "../license/contamination.js";
 import { getContextNotes } from "../license/context-notes.js";
 import type { EnhancedLicense } from "../license/enhanced-checker.js";
+import { resolveLicenseReference } from "../license/metadata.js";
+import { parseLicenseComponents } from "../license/spdx.js";
 import type { PhantomDependency } from "../phantom/scanner.js";
 import type { PinningReport } from "../pinning/analyzer.js";
 import type { ProvenanceResult } from "../provenance/checker.js";
@@ -55,6 +57,11 @@ export function buildReport(
       depth: node.depth,
       license: node.license,
       licenseCategory: node.licenseCategory,
+      licenseDetails: node.license
+        ? parseLicenseComponents(node.license).map((component) =>
+            resolveLicenseReference(component.spdxId),
+          )
+        : undefined,
       vulnerabilities: (vulnResult?.vulnerabilities ?? []).map((v) => ({
         id: v.id,
         summary: v.summary ?? "No description",

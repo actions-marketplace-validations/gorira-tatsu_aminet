@@ -2,6 +2,7 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import type { LicenseCategory } from "../../core/graph/types.js";
 import { getContextNotes } from "../../core/license/context-notes.js";
+import type { LicenseReference } from "../../core/license/metadata.js";
 import { parseLicenseComponents, renderSpdxExpression } from "../../core/license/spdx.js";
 import type { Report } from "../../core/report/types.js";
 
@@ -19,15 +20,19 @@ export function renderTable(report: Report): void {
   const hasFreshness = report.entries.some((e) => e.freshness);
   const hasEnhancedLicense = report.entries.some((e) => e.enhancedLicense);
   const hasProvenance = report.entries.some((e) => e.provenance);
+  const hasLicenseDetails = report.entries.some(
+    (e) => e.licenseDetails && e.licenseDetails.length > 0,
+  );
 
   const head = [
     chalk.cyan("Package"),
     chalk.cyan("Version"),
     chalk.cyan("Depth"),
     chalk.cyan("License"),
+    chalk.cyan("License Info"),
     chalk.cyan("Vulnerabilities"),
   ];
-  const colWidths: number[] = [35, 12, 7, 20, 40];
+  const colWidths: number[] = [35, 12, 7, 24, 24, 36];
 
   if (hasTrustScores) {
     head.push(chalk.cyan("Trust"));
@@ -79,6 +84,7 @@ export function renderTable(report: Report): void {
       entry.version,
       String(entry.depth),
       colorLicense(entry.license, entry.licenseCategory),
+      hasLicenseDetails ? formatLicenseInfo(entry.licenseDetails) : chalk.gray("-"),
       vulnText,
     ];
 
@@ -398,6 +404,26 @@ function colorLicense(license: string | null, category: LicenseCategory): string
   }
 
   return colorByCategory(license, category);
+}
+
+function formatLicenseInfo(details?: LicenseReference[]): string {
+  if (!details || details.length === 0) {
+    return chalk.gray("unknown");
+  }
+
+  return details
+    .map((detail) => {
+      const osi =
+        detail.osiApproved === true ? "OSI" : detail.osiApproved === false ? "non-OSI" : "OSI?";
+      const fsf =
+        detail.fsfStatus === "free"
+          ? "FSF-free"
+          : detail.fsfStatus === "nonfree"
+            ? "FSF-nonfree"
+            : "FSF?";
+      return `${detail.spdxId} ${chalk.gray(`(${osi}, ${fsf})`)}`;
+    })
+    .join("\n");
 }
 
 function colorByCategory(text: string, category: LicenseCategory): string {

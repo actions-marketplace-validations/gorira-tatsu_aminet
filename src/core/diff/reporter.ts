@@ -1,6 +1,14 @@
 import type { Report, ReportEntry } from "../report/types.js";
 import type { SecuritySignal } from "../security/types.js";
-import type { DependencyDiff, DiffEntry, DiffSummary, LicenseChange, VulnChange } from "./types.js";
+import type { NormalizedAdvisory } from "../vulnerability/advisory-types.js";
+import type {
+  DependencyDiff,
+  DiffEntry,
+  DiffSummary,
+  LicenseChange,
+  ReviewVulnerability,
+  VulnChange,
+} from "./types.js";
 
 export function computeDiff(baseReport: Report, headReport: Report): DependencyDiff {
   // Index by package name for version-change detection
@@ -40,16 +48,17 @@ export function computeDiff(baseReport: Report, headReport: Report): DependencyD
         version: headEntry.version,
         license: headEntry.license,
         licenseCategory: headEntry.licenseCategory,
+        licenseDetails: headEntry.licenseDetails,
         depth: headEntry.depth,
       });
 
-      // All vulns in new package are new
-      if (headEntry.vulnerabilities.length > 0) {
+      const headVulns = toReviewVulnerabilities(headEntry);
+      if (headVulns.length > 0) {
         newVulnerabilities.push({
           packageId: headEntry.id,
           name: headEntry.name,
           version: headEntry.version,
-          vulnerabilities: headEntry.vulnerabilities,
+          vulnerabilities: headVulns,
         });
       }
       continue;
@@ -63,6 +72,7 @@ export function computeDiff(baseReport: Report, headReport: Report): DependencyD
         previousVersion: baseEntry.version,
         license: headEntry.license,
         licenseCategory: headEntry.licenseCategory,
+        licenseDetails: headEntry.licenseDetails,
         depth: headEntry.depth,
       });
     }
@@ -77,16 +87,19 @@ export function computeDiff(baseReport: Report, headReport: Report): DependencyD
         version: headEntry.version,
         previousLicense: baseEntry.license,
         previousCategory: baseEntry.licenseCategory,
+        previousLicenseDetails: baseEntry.licenseDetails,
         newLicense: headEntry.license,
         newCategory: headEntry.licenseCategory,
+        newLicenseDetails: headEntry.licenseDetails,
       });
     }
 
-    // Vulnerability diff
-    const baseVulnIds = new Set(baseEntry.vulnerabilities.map((v) => v.id));
-    const headVulnIds = new Set(headEntry.vulnerabilities.map((v) => v.id));
+    const baseVulns = toReviewVulnerabilities(baseEntry);
+    const headVulns = toReviewVulnerabilities(headEntry);
+    const baseVulnIds = new Set(baseVulns.map((v) => v.id));
+    const headVulnIds = new Set(headVulns.map((v) => v.id));
 
-    const newVulns = headEntry.vulnerabilities.filter((v) => !baseVulnIds.has(v.id));
+    const newVulns = headVulns.filter((v) => !baseVulnIds.has(v.id));
     if (newVulns.length > 0) {
       newVulnerabilities.push({
         packageId: headEntry.id,
@@ -96,7 +109,7 @@ export function computeDiff(baseReport: Report, headReport: Report): DependencyD
       });
     }
 
-    const resolvedVulns = baseEntry.vulnerabilities.filter((v) => !headVulnIds.has(v.id));
+    const resolvedVulns = baseVulns.filter((v) => !headVulnIds.has(v.id));
     if (resolvedVulns.length > 0) {
       resolvedVulnerabilities.push({
         packageId: baseEntry.id,
@@ -115,16 +128,17 @@ export function computeDiff(baseReport: Report, headReport: Report): DependencyD
         version: baseEntry.version,
         license: baseEntry.license,
         licenseCategory: baseEntry.licenseCategory,
+        licenseDetails: baseEntry.licenseDetails,
         depth: baseEntry.depth,
       });
 
-      // All vulns in removed package are resolved
-      if (baseEntry.vulnerabilities.length > 0) {
+      const baseVulns = toReviewVulnerabilities(baseEntry);
+      if (baseVulns.length > 0) {
         resolvedVulnerabilities.push({
           packageId: baseEntry.id,
           name: baseEntry.name,
           version: baseEntry.version,
-          vulnerabilities: baseEntry.vulnerabilities,
+          vulnerabilities: baseVulns,
         });
       }
     }
@@ -151,6 +165,33 @@ export function computeDiff(baseReport: Report, headReport: Report): DependencyD
     newSecuritySignals,
     resolvedSecuritySignals,
     summary,
+  };
+}
+
+function toReviewVulnerabilities(entry: ReportEntry): ReviewVulnerability[] {
+  if (entry.advisories && entry.advisories.length > 0) {
+    return entry.advisories.map(normalizedAdvisoryToReviewVulnerability);
+  }
+
+  return entry.vulnerabilities.map((vulnerability) => ({
+    ...vulnerability,
+    fixedVersion: null,
+    sources: ["osv"],
+    references: [],
+  }));
+}
+
+function normalizedAdvisoryToReviewVulnerability(
+  advisory: NormalizedAdvisory,
+): ReviewVulnerability {
+  return {
+    id: advisory.id,
+    summary: advisory.title,
+    severity: advisory.severity.toUpperCase(),
+    aliases: advisory.aliases,
+    fixedVersion: advisory.fixedVersion,
+    sources: advisory.sources,
+    references: advisory.references,
   };
 }
 
