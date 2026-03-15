@@ -13,6 +13,7 @@ Thanks for contributing.
 git clone https://github.com/gorira-tatsu/ami.git
 cd ami
 bun install
+bun run build
 ```
 
 ## Development commands
@@ -20,14 +21,14 @@ bun install
 ```bash
 bun run lint
 bun test
-bun run src/index.ts --help
+./bin/ami --help
 ```
 
 Useful targeted commands:
 
 ```bash
-bun run src/index.ts analyze express@4.21.2 --security --trust-score
-bun run src/index.ts review package.json --base HEAD~1 --security
+./bin/ami analyze express@4.21.2 --security --trust-score
+./bin/ami review package.json --base HEAD~1 --security
 ```
 
 ## Project layout

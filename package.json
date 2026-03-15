@@ -23,12 +23,23 @@
   "engines": {
     "bun": ">=1.2.0"
   },
+  "files": [
+    "bin",
+    "dist",
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md"
+  ],
   "type": "module",
   "bin": {
-    "ami": "./src/index.ts"
+    "ami": "./bin/ami"
   },
   "scripts": {
-    "start": "bun run src/index.ts",
+    "build": "bun build --target bun --outfile dist/index.js src/index.ts",
+    "prepack": "bun run build",
+    "prepare": "bun run build",
+    "start": "./bin/ami",
     "test": "bun test",
     "test:integration": "INTEGRATION_TEST=1 bun test",
     "lint": "biome check .",

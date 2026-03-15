@@ -39,7 +39,8 @@ It analyzes dependency graphs, vulnerabilities, licenses, security signals, trus
 
 ```bash
 bun install
-bun run src/index.ts --help
+bun run build
+./bin/ami --help
 ```
 
 ## Quick start
@@ -47,26 +48,26 @@ bun run src/index.ts --help
 Analyze a published package:
 
 ```bash
-bun run src/index.ts analyze express@4.21.2 --security --trust-score --freshness
+bunx ami analyze express@4.21.2 --security --trust-score --freshness
 ```
 
 Analyze a local project:
 
 ```bash
-bun run src/index.ts analyze package.json --security --enhanced-license --json
+bunx ami analyze package.json --security --enhanced-license --json
 ```
 
 Review dependency changes in a branch:
 
 ```bash
-bun run src/index.ts review package.json --base HEAD~1 --security
+bunx ami review package.json --base HEAD~1 --security
 ```
 
 Cache maintenance:
 
 ```bash
-bun run src/index.ts cache stats
-bun run src/index.ts cache prune
+bunx ami cache stats
+bunx ami cache prune
 ```
 
 ## Example outputs
@@ -74,10 +75,10 @@ bun run src/index.ts cache prune
 Representative analyze modes:
 
 ```bash
-bun run src/index.ts analyze express@4.21.2 --json
-bun run src/index.ts analyze express@4.21.2 --cyclonedx
-bun run src/index.ts analyze express@4.21.2 --spdx
-bun run src/index.ts analyze express@4.21.2 --notices
+bunx ami analyze express@4.21.2 --json
+bunx ami analyze express@4.21.2 --cyclonedx
+bunx ami analyze express@4.21.2 --spdx
+bunx ami analyze express@4.21.2 --notices
 ```
 
 Representative review mode:
@@ -119,8 +120,8 @@ Top-level commands:
 Use the built-in help for the complete option set:
 
 ```bash
-bun run src/index.ts analyze --help
-bun run src/index.ts review --help
+bunx ami analyze --help
+bunx ami review --help
 ```
 
 ## GitHub Action
@@ -167,6 +168,14 @@ bun test
 ```
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contributor workflow details.
+
+## Packaging notes
+
+The published package exposes an `ami` executable through `bin/ami` and a Bun-targeted bundled entrypoint in `dist/index.js`.
+
+- `bunx ami ...` is the intended zero-install UX
+- `npm install -g ami` also works if Bun is already available on `PATH`
+- repository-local development can use `./bin/ami ...` after `bun run build`
 
 ## Security reporting
 
