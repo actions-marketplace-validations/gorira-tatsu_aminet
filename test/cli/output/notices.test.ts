@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { renderNotices } from "../../../src/cli/output/notices.js";
 import type { Report } from "../../../src/core/report/types.js";
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { NpmPackument } from "../../../src/core/registry/types.js";
 import { detectPublishAnomalies } from "../../../src/core/security/publish-anomaly.js";
 

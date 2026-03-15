@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { resolveVersion } from "../../../src/core/graph/semver-resolver.js";
 import type { NpmPackument } from "../../../src/core/registry/types.js";
 

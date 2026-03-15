@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { buildCycloneDxBom } from "../../../src/cli/output/cyclonedx.js";
 import type { DependencyGraph } from "../../../src/core/graph/types.js";
 import type { Report } from "../../../src/core/report/types.js";

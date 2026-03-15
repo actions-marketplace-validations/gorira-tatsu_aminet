@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { createDatabase, type DatabaseLike } from "../../../src/core/store/adapter.js";
 import { closeDatabase, setDatabase } from "../../../src/core/store/database.js";
 import { runMigrations } from "../../../src/core/store/migrations.js";
 import {
@@ -13,11 +13,11 @@ import {
 } from "../../../src/core/trust/depsdev-client.js";
 import { fetchWeeklyDownloads } from "../../../src/core/trust/npm-downloads-client.js";
 
-let db: Database;
+let db: DatabaseLike;
 const originalFetch = globalThis.fetch;
 
 beforeEach(() => {
-  db = new Database(":memory:");
+  db = createDatabase(":memory:");
   runMigrations(db);
   setDatabase(db);
 });
@@ -30,7 +30,7 @@ afterEach(() => {
 describe("trust external cache clients", () => {
   test("fetchWeeklyDownloads returns cached value without network", async () => {
     cacheNpmDownloads("express", 999);
-    const fetchMock = mock<typeof fetch>(() => {
+    const fetchMock = vi.fn(() => {
       throw new Error("network should not be used");
     });
     globalThis.fetch = fetchMock as typeof fetch;
@@ -45,7 +45,7 @@ describe("trust external cache clients", () => {
       advisoryKeys: [{ id: "ADV-1" }],
     };
     cacheDepsdevVersion("express", "4.21.2", payload as any);
-    const fetchMock = mock<typeof fetch>(() => {
+    const fetchMock = vi.fn(() => {
       throw new Error("network should not be used");
     });
     globalThis.fetch = fetchMock as typeof fetch;
@@ -60,7 +60,7 @@ describe("trust external cache clients", () => {
       scorecard: { date: "2025-01-01", score: 7.1, checks: [] },
     };
     cacheDepsdevProject("github.com/expressjs/express", payload as any);
-    const fetchMock = mock<typeof fetch>(() => {
+    const fetchMock = vi.fn(() => {
       throw new Error("network should not be used");
     });
     globalThis.fetch = fetchMock as typeof fetch;

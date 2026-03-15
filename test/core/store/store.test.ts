@@ -1,5 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { createDatabase, type DatabaseLike } from "../../../src/core/store/adapter.js";
 import { TTL } from "../../../src/core/store/config.js";
 import { closeDatabase, setDatabase } from "../../../src/core/store/database.js";
 import {
@@ -31,10 +31,10 @@ import {
   getCachedVulnerabilities,
 } from "../../../src/core/store/vulnerability-store.js";
 
-let db: Database;
+let db: DatabaseLike;
 
 beforeEach(() => {
-  db = new Database(":memory:");
+  db = createDatabase(":memory:");
   runMigrations(db);
   setDatabase(db);
 });

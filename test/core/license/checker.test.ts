@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { extractLicense } from "../../../src/core/license/checker.js";
 import { classifyLicense } from "../../../src/core/license/spdx.js";
 import type { NpmVersionInfo } from "../../../src/core/registry/types.js";

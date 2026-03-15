@@ -1,6 +1,8 @@
 node_modules/
+.pnpm-store/
 dist/
 .ami/
+.tmp/
 *.db
 *.tgz
 .DS_Store

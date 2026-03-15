@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { renderGraphviz } from "../../../src/cli/output/graphviz.js";
 import type { DependencyGraph, PackageNode } from "../../../src/core/graph/types.js";
 import type { VulnerabilityResult } from "../../../src/core/vulnerability/types.js";

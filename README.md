@@ -1,6 +1,6 @@
-# ami
+# aminet
 
-`ami` is a Bun-based CLI and GitHub Action for reviewing npm dependency risk.
+`aminet` is a Node-executable CLI and GitHub Action for reviewing npm dependency risk.
 
 It analyzes dependency graphs, vulnerabilities, licenses, security signals, trust, freshness, provenance, and version pinning, then renders the result as terminal output, machine-readable JSON, SBOMs, or PR review comments.
 
@@ -10,7 +10,7 @@ It analyzes dependency graphs, vulnerabilities, licenses, security signals, trus
 - License is not finalized yet
 - CLI and review output may still evolve
 
-## What `ami` does
+## What `aminet` does
 
 - Analyze a package or project dependency graph
 - Review pull request dependency changes and post GitHub comments
@@ -32,15 +32,16 @@ It analyzes dependency graphs, vulnerabilities, licenses, security signals, trus
 
 ## Requirements
 
-- Bun `>=1.2.0`
-- npm ecosystem input (`package.json`, `package-lock.json`, or `bun.lock`)
+- Node.js `>=20`
+- pnpm `>=10`
+- npm ecosystem input (`package.json`, `pnpm-lock.yaml`, or `package-lock.json`)
 
 ## Local setup
 
 ```bash
-bun install
-bun run build
-./bin/ami --help
+pnpm install
+pnpm build
+node dist/index.js --help
 ```
 
 ## Quick start
@@ -48,26 +49,26 @@ bun run build
 Analyze a published package:
 
 ```bash
-bunx ami analyze express@4.21.2 --security --trust-score --freshness
+pnpm dlx aminet analyze express@4.21.2 --security --trust-score --freshness
 ```
 
 Analyze a local project:
 
 ```bash
-bunx ami analyze package.json --security --enhanced-license --json
+pnpm dlx aminet analyze package.json --security --enhanced-license --json
 ```
 
 Review dependency changes in a branch:
 
 ```bash
-bunx ami review package.json --base HEAD~1 --security
+pnpm dlx aminet review package.json --base HEAD~1 --security
 ```
 
 Cache maintenance:
 
 ```bash
-bunx ami cache stats
-bunx ami cache prune
+pnpm dlx aminet cache stats
+pnpm dlx aminet cache prune
 ```
 
 ## Example outputs
@@ -75,16 +76,16 @@ bunx ami cache prune
 Representative analyze modes:
 
 ```bash
-bunx ami analyze express@4.21.2 --json
-bunx ami analyze express@4.21.2 --cyclonedx
-bunx ami analyze express@4.21.2 --spdx
-bunx ami analyze express@4.21.2 --notices
+pnpm dlx aminet analyze express@4.21.2 --json
+pnpm dlx aminet analyze express@4.21.2 --cyclonedx
+pnpm dlx aminet analyze express@4.21.2 --spdx
+pnpm dlx aminet analyze express@4.21.2 --notices
 ```
 
 Representative review mode:
 
 ```text
-## ami Dependency Review
+## aminet Dependency Review
 
 | Metric | Count |
 |--------|-------|
@@ -120,8 +121,8 @@ Top-level commands:
 Use the built-in help for the complete option set:
 
 ```bash
-bunx ami analyze --help
-bunx ami review --help
+node dist/index.js analyze --help
+node dist/index.js review --help
 ```
 
 ## GitHub Action
@@ -135,6 +136,7 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
+      - uses: pnpm/action-setup@v4
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -144,7 +146,7 @@ jobs:
           security: "true"
 ```
 
-For remote usage after tagged releases are published, replace `uses: ./` with `uses: owner/ami@tag`.
+For remote usage after tagged releases are published, replace `uses: ./` with `uses: gorira-tatsu/aminet@tag`.
 
 ## Output modes
 
@@ -163,19 +165,19 @@ For remote usage after tagged releases are published, replace `uses: ./` with `u
 Run the main checks before opening a PR:
 
 ```bash
-bun run lint
-bun test
+pnpm lint
+pnpm test
 ```
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for contributor workflow details.
 
 ## Packaging notes
 
-The published package exposes an `ami` executable through `bin/ami` and a Bun-targeted bundled entrypoint in `dist/index.js`.
+The published package exposes an `aminet` executable through `dist/index.js` with a Node shebang.
 
-- `bunx ami ...` is the intended zero-install UX
-- `npm install -g ami` also works if Bun is already available on `PATH`
-- repository-local development can use `./bin/ami ...` after `bun run build`
+- `pnpm dlx aminet ...` is the intended zero-install UX
+- `pnpm add -g aminet` exposes `aminet ...` globally
+- repository-local development can use `node dist/index.js ...` after `pnpm build`
 
 ## Security reporting
 

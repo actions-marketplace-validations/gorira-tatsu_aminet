@@ -1,5 +1,9 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fetchWithRetry } from "../../utils/http.js";
 import { logger } from "../../utils/logger.js";
+import { runCommand } from "../../utils/process.js";
 
 export interface LicenseFileResult {
   licenseFile?: { filename: string; content: string };
@@ -27,19 +31,18 @@ export async function extractLicenseFiles(tarballUrl: string): Promise<LicenseFi
       return { detectedLicense: null };
     }
 
-    const buffer = await response.arrayBuffer();
-    const tmpFile = `/tmp/ami-tarball-${Date.now()}.tgz`;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const tmpDir = await mkdtemp(join(tmpdir(), "aminet-tarball-"));
+    const tmpFile = join(tmpDir, "package.tgz");
 
-    await Bun.write(tmpFile, buffer);
+    await writeFile(tmpFile, buffer);
 
     try {
       // List files in tarball
-      const listProc = Bun.spawn(["tar", "-tzf", tmpFile], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      const listOutput = await new Response(listProc.stdout).text();
-      await listProc.exited;
+      const { exitCode, stdout: listOutput } = await runCommand("tar", ["-tzf", tmpFile]);
+      if (exitCode !== 0) {
+        return { detectedLicense: null };
+      }
 
       const files = listOutput
         .split("\n")
@@ -91,8 +94,7 @@ export async function extractLicenseFiles(tarballUrl: string): Promise<LicenseFi
     } finally {
       // Clean up temp file
       try {
-        const { unlinkSync } = require("node:fs");
-        unlinkSync(tmpFile);
+        await rm(tmpDir, { recursive: true, force: true });
       } catch {
         // ignore
       }
@@ -107,13 +109,8 @@ export async function extractLicenseFiles(tarballUrl: string): Promise<LicenseFi
 
 async function extractSingleFile(tarball: string, filePath: string): Promise<string | null> {
   try {
-    const proc = Bun.spawn(["tar", "-xzf", tarball, "-O", filePath], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const content = await new Response(proc.stdout).text();
-    const exitCode = await proc.exited;
-    return exitCode === 0 ? content : null;
+    const { exitCode, stdout } = await runCommand("tar", ["-xzf", tarball, "-O", filePath]);
+    return exitCode === 0 ? stdout : null;
   } catch {
     return null;
   }

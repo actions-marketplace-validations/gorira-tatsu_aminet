@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { Command } from "commander";
 import { analyzeCommand } from "./cli/commands/analyze.js";
 import { cacheClearCommand, cachePruneCommand, cacheStatsCommand } from "./cli/commands/cache.js";
@@ -7,7 +7,7 @@ import { reviewCommand } from "./cli/commands/review.js";
 const program = new Command();
 
 program
-  .name("ami")
+  .name("aminet")
   .description("Software supply chain security tool for npm packages")
   .version("0.1.0");
 
@@ -15,7 +15,10 @@ program
 program
   .command("analyze")
   .description("Analyze dependencies, licenses, and vulnerabilities")
-  .argument("<package>", "Package (e.g., express@4.21.2) or file path (package.json, bun.lock)")
+  .argument(
+    "<package>",
+    "Package (e.g., express@4.21.2) or file path (package.json, pnpm-lock.yaml)",
+  )
   .option("--json", "Output as JSON")
   .option("--tree", "Output as dependency tree")
   .option("--dot", "Output as Graphviz DOT format")
@@ -90,7 +93,7 @@ program
   .option("--head <ref>", "Head git ref or file path (default: working tree)")
   .option("--pr-number <number>", "GitHub PR number for comment posting")
   .option("--repo <owner/name>", "GitHub repository (e.g., user/repo)")
-  .option("--update-comment", "Update existing ami comment instead of creating new")
+  .option("--update-comment", "Update existing aminet comment instead of creating new")
   .option("-d, --depth <number>", "Maximum dependency depth", parseInt)
   .option("-c, --concurrency <number>", "Maximum concurrent requests", parseInt)
   .option("--dev", "Include devDependencies")

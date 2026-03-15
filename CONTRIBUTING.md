@@ -1,34 +1,35 @@
-# Contributing to ami
+# Contributing to aminet
 
 Thanks for contributing.
 
 ## Prerequisites
 
-- Bun `>=1.2.0`
+- Node.js `>=20`
 - Git
+- pnpm `>=10`
 
 ## Setup
 
 ```bash
-git clone https://github.com/gorira-tatsu/ami.git
-cd ami
-bun install
-bun run build
+git clone https://github.com/gorira-tatsu/aminet.git
+cd aminet
+pnpm install
+pnpm build
 ```
 
 ## Development commands
 
 ```bash
-bun run lint
-bun test
-./bin/ami --help
+pnpm lint
+pnpm test
+node dist/index.js --help
 ```
 
 Useful targeted commands:
 
 ```bash
-./bin/ami analyze express@4.21.2 --security --trust-score
-./bin/ami review package.json --base HEAD~1 --security
+node dist/index.js analyze express@4.21.2 --security --trust-score
+node dist/index.js review package.json --base HEAD~1 --security
 ```
 
 ## Project layout
@@ -43,7 +44,7 @@ Useful targeted commands:
 - Keep changes scoped
 - Add or update tests for behavior changes
 - Update user-facing documentation when commands, flags, or output change
-- Run `bun run lint` and `bun test` before opening a PR
+- Run `pnpm lint` and `pnpm test` before opening a PR
 
 ## Commit and review hygiene
 

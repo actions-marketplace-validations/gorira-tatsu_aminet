@@ -1,7 +1,7 @@
 import type { DependencyDiff } from "../../core/diff/types.js";
 import type { LicenseReference } from "../../core/license/metadata.js";
 
-const MARKER = "<!-- ami-review -->";
+const MARKER = "<!-- aminet-review -->";
 
 const RISK_ICONS: Record<string, string> = {
   none: ":white_circle:",
@@ -15,7 +15,7 @@ export function renderMarkdownComment(diff: DependencyDiff): string {
   const lines: string[] = [];
 
   lines.push(MARKER);
-  lines.push("## ami Dependency Review");
+  lines.push("## aminet Dependency Review");
   lines.push("");
   lines.push("| Metric | Count |");
   lines.push("|--------|-------|");

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { fetchWithRetry } from "../../src/utils/http.js";
 import { circuitBreaker } from "../../src/utils/rate-limiter.js";
 
@@ -15,9 +15,7 @@ describe("fetchWithRetry", () => {
   });
 
   test("waits at least 1 second when Retry-After is 0", async () => {
-    const fetchMock = mock<typeof fetch>(() =>
-      Promise.resolve(new Response(null, { status: 200 })),
-    );
+    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
     fetchMock.mockImplementationOnce(() =>
       Promise.resolve(
         new Response(null, {
@@ -42,9 +40,7 @@ describe("fetchWithRetry", () => {
   });
 
   test("opens the circuit breaker after repeated 429s", async () => {
-    const fetchMock = mock<typeof fetch>(() =>
-      Promise.resolve(new Response(null, { status: 429 })),
-    );
+    const fetchMock = vi.fn(async () => new Response(null, { status: 429 }));
     globalThis.fetch = fetchMock as typeof fetch;
 
     for (let i = 0; i < 3; i++) {

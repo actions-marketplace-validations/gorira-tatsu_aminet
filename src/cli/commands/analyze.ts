@@ -58,7 +58,7 @@ export async function analyzeCommand(target: string, options: AnalyzeOptions): P
     }
   }
 
-  // Initialize DB (ensures ~/.ami/ exists)
+  // Initialize DB (ensures ~/.aminet/ exists)
   getDatabase();
 
   if (options.noCache) {
@@ -77,6 +77,7 @@ export async function analyzeCommand(target: string, options: AnalyzeOptions): P
     target.includes("/") ||
     target.includes("\\") ||
     target.endsWith(".lock") ||
+    target === "pnpm-lock.yaml" ||
     target === "bun.lock" ||
     target === "bun.lockb" ||
     target === "package-lock.json";
@@ -125,6 +126,7 @@ async function analyzeFile(
   let packageJsonPath = filePath;
   const fileBaseName = basename(filePath);
   if (
+    fileBaseName === "pnpm-lock.yaml" ||
     fileBaseName === "bun.lock" ||
     fileBaseName === "bun.lockb" ||
     fileBaseName === "package-lock.json"
@@ -551,7 +553,7 @@ function writeGitHubSummary(report: Report): void {
     const summaryPath = process.env.GITHUB_STEP_SUMMARY!;
     const { summary } = report;
     const lines = [
-      "## ami Security Report",
+      "## aminet Security Report",
       "",
       `| Metric | Count |`,
       `|--------|-------|`,

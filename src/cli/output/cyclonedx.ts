@@ -55,7 +55,7 @@ export function buildCycloneDxBom(report: Report, graph: DependencyGraph): Cyclo
 
     // Add integrity hash if available from node data
     if (node) {
-      const nodeAny = node as Record<string, unknown>;
+      const nodeAny = node as unknown as Record<string, unknown>;
       if (typeof nodeAny.integrity === "string" && nodeAny.integrity) {
         const integrity = nodeAny.integrity as string;
         const match = integrity.match(/^(sha256|sha384|sha512)-(.+)$/);
@@ -102,7 +102,7 @@ export function buildCycloneDxBom(report: Report, graph: DependencyGraph): Cyclo
     serialNumber: `urn:uuid:${randomUUID()}`,
     metadata: {
       timestamp: new Date().toISOString(),
-      tools: [{ vendor: "ami", name: "ami", version: "0.1.0" }],
+      tools: [{ vendor: "aminet", name: "aminet", version: "0.1.0" }],
     },
     components,
     dependencies,

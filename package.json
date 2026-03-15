@@ -1,15 +1,16 @@
 {
-  "name": "ami",
+  "name": "aminet",
   "version": "0.1.0",
   "description": "CLI and GitHub Action for npm supply chain security reviews",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gorira-tatsu/ami.git"
+    "url": "https://github.com/gorira-tatsu/aminet.git"
   },
-  "homepage": "https://github.com/gorira-tatsu/ami",
+  "homepage": "https://github.com/gorira-tatsu/aminet",
   "bugs": {
-    "url": "https://github.com/gorira-tatsu/ami/issues"
+    "url": "https://github.com/gorira-tatsu/aminet/issues"
   },
+  "packageManager": "pnpm@10.28.0",
   "keywords": [
     "security",
     "supply-chain",
@@ -21,10 +22,9 @@
     "cli"
   ],
   "engines": {
-    "bun": ">=1.2.0"
+    "node": ">=20.0.0"
   },
   "files": [
-    "bin",
     "dist",
     "README.md",
     "CONTRIBUTING.md",
@@ -33,30 +33,35 @@
   ],
   "type": "module",
   "bin": {
-    "ami": "./bin/ami"
+    "aminet": "./dist/index.js"
   },
   "scripts": {
-    "build": "bun build --target bun --outfile dist/index.js src/index.ts",
-    "prepack": "bun run build",
-    "prepare": "bun run build",
-    "start": "./bin/ami",
-    "test": "bun test",
-    "test:integration": "INTEGRATION_TEST=1 bun test",
+    "build": "tsc -p tsconfig.json",
+    "prepack": "pnpm build",
+    "prepare": "pnpm build",
+    "start": "node ./dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "INTEGRATION_TEST=1 vitest run",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write ."
   },
   "dependencies": {
+    "better-sqlite3": "^12.8.0",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^13.1.0",
     "ora": "^8.2.0",
-    "semver": "^7.7.1"
+    "semver": "^7.7.1",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.7",
-    "@types/bun": "^1.2.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.5.0",
     "@types/semver": "^7.7.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.4"
   }
 }

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { logger } from "../../utils/logger.js";
 import type { AmiConfig } from "./types.js";
 
-const CONFIG_FILENAME = "ami.config.json";
+const CONFIG_FILENAME = "aminet.config.json";
 
 export function loadConfig(dir?: string): AmiConfig {
   const searchDir = dir ?? process.cwd();

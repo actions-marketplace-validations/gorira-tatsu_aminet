@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { NpmVersionInfo } from "../../../src/core/registry/types.js";
 import { detectInstallScripts } from "../../../src/core/security/install-scripts.js";
 

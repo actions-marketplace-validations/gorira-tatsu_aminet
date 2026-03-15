@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
+import { parse } from "yaml";
 import { logger } from "../../utils/logger.js";
 
 export interface LockfileEntry {
@@ -8,7 +9,7 @@ export interface LockfileEntry {
 }
 
 export interface LockfileResult {
-  format: "bun.lock" | "package-lock.json";
+  format: "bun.lock" | "package-lock.json" | "pnpm-lock.yaml";
   packages: Map<string, string>; // name → exact version
 }
 
@@ -20,8 +21,8 @@ export async function tryParseLockfile(packageJsonPath: string): Promise<Lockfil
   const dir = packageJsonPath.replace(/[/\\][^/\\]+$/, "");
   const prefix = dir ? `${dir}/` : "";
 
-  // Try bun.lock first, then package-lock.json
-  for (const lockfileName of ["bun.lock", "package-lock.json"]) {
+  // Prefer pnpm first, then npm, then Bun compatibility
+  for (const lockfileName of ["pnpm-lock.yaml", "package-lock.json", "bun.lock"]) {
     const lockfilePath = `${prefix}${lockfileName}`;
     try {
       const content = await readFile(lockfilePath, "utf-8");
@@ -49,7 +50,47 @@ export function parseLockfile(filename: string, content: string): LockfileResult
   if (name === "package-lock.json") {
     return parsePackageLock(content);
   }
+  if (name === "pnpm-lock.yaml") {
+    return parsePnpmLock(content);
+  }
   return null;
+}
+
+function parsePnpmLock(content: string): LockfileResult | null {
+  try {
+    const lock = parse(content) as {
+      importers?: Record<
+        string,
+        {
+          dependencies?: Record<string, { version?: string } | string>;
+          devDependencies?: Record<string, { version?: string } | string>;
+          optionalDependencies?: Record<string, { version?: string } | string>;
+        }
+      >;
+    };
+    const importer = lock.importers?.["."] ?? lock.importers?.[""];
+    const packages = new Map<string, string>();
+
+    for (const section of [
+      importer?.dependencies,
+      importer?.devDependencies,
+      importer?.optionalDependencies,
+    ]) {
+      if (!section) continue;
+      for (const [name, value] of Object.entries(section)) {
+        const rawVersion = typeof value === "string" ? value : value.version;
+        const version = normalizePnpmVersion(rawVersion);
+        if (version) {
+          packages.set(name, version);
+        }
+      }
+    }
+
+    return { format: "pnpm-lock.yaml", packages };
+  } catch {
+    logger.warn("Failed to parse pnpm-lock.yaml");
+    return null;
+  }
 }
 
 /**
@@ -162,4 +203,9 @@ function extractNameFromNodeModulesPath(path: string): string | null {
   const lastIdx = path.lastIndexOf(prefix);
   if (lastIdx === -1) return null;
   return path.slice(lastIdx + prefix.length);
+}
+
+function normalizePnpmVersion(version: string | undefined): string | null {
+  if (!version) return null;
+  return version.split("(")[0] ?? null;
 }

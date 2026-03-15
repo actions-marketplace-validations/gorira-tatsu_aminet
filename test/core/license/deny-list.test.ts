@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { checkDenyList } from "../../../src/core/license/deny-list.js";
 import type { ReportEntry } from "../../../src/core/report/types.js";
 

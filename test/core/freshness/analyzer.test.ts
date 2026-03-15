@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { analyzeFreshness } from "../../../src/core/freshness/analyzer.js";
 import type { NpmPackument } from "../../../src/core/registry/types.js";
 

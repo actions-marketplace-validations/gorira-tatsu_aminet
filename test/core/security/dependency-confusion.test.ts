@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import type { NpmPackument } from "../../../src/core/registry/types.js";
 import { detectDependencyConfusion } from "../../../src/core/security/dependency-confusion.js";
 

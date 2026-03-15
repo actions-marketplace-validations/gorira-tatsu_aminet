@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-`ami` is currently pre-`1.0`. Security fixes are applied on the latest mainline development branch and most recent tagged release, once releases are established.
+`aminet` is currently pre-`1.0`. Security fixes are applied on the latest mainline development branch and most recent tagged release, once releases are established.
 
 ## Reporting a vulnerability
 
@@ -12,7 +12,7 @@ Until a dedicated security mailbox is published, open a private GitHub security 
 
 Include:
 
-- affected `ami` version or commit
+- affected `aminet` version or commit
 - reproduction steps
 - impact assessment
 - proof of concept or logs when relevant
@@ -27,8 +27,8 @@ Include:
 
 This policy covers vulnerabilities in:
 
-- the `ami` CLI
+- the `aminet` CLI
 - the bundled GitHub Action in this repository
 - documented installation and execution flows maintained by this project
 
-It does not cover vulnerabilities in third-party registries or advisory sources consumed by `ami`, except where `ami` handles them incorrectly.
+It does not cover vulnerabilities in third-party registries or advisory sources consumed by `aminet`, except where `aminet` handles them incorrectly.

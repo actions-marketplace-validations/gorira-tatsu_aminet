@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { TokenBucket } from "../../../src/utils/rate-limiter.js";
 
 describe("TokenBucket", () => {

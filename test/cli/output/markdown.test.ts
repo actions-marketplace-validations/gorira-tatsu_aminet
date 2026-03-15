@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { renderMarkdownComment } from "../../../src/cli/output/markdown.js";
 import type { DependencyDiff } from "../../../src/core/diff/types.js";
 
@@ -27,10 +27,10 @@ function makeEmptyDiff(): DependencyDiff {
 }
 
 describe("renderMarkdownComment", () => {
-  it("includes ami-review marker", () => {
+  it("includes aminet-review marker", () => {
     const diff = makeEmptyDiff();
     const md = renderMarkdownComment(diff);
-    expect(md).toContain("<!-- ami-review -->");
+    expect(md).toContain("<!-- aminet-review -->");
   });
 
   it("includes summary table", () => {
@@ -64,7 +64,7 @@ describe("renderMarkdownComment", () => {
     ];
     const md = renderMarkdownComment(diff);
     expect(md).toContain("| Added | 3 |");
-    expect(md).toContain("## ami Dependency Review");
+    expect(md).toContain("## aminet Dependency Review");
   });
 
   it("renders new dependencies section", () => {

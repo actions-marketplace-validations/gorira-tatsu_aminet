@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { DatabaseLike } from "./adapter.js";
 
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS _meta (
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS depsdev_projects_cache (
 );
 `;
 
-export function runMigrations(db: Database): void {
+export function runMigrations(db: DatabaseLike): void {
   const currentVersion = getSchemaVersion(db);
 
   if (currentVersion < 1) {
@@ -204,7 +204,7 @@ export function runMigrations(db: Database): void {
   }
 }
 
-function getSchemaVersion(db: Database): number {
+function getSchemaVersion(db: DatabaseLike): number {
   try {
     // _meta might not exist yet
     const row = db.query("SELECT value FROM _meta WHERE key = 'schema_version'").get() as {
@@ -216,7 +216,7 @@ function getSchemaVersion(db: Database): number {
   }
 }
 
-function setSchemaVersion(db: Database, version: number): void {
+function setSchemaVersion(db: DatabaseLike, version: number): void {
   db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_version', ?)", [
     String(version),
   ]);

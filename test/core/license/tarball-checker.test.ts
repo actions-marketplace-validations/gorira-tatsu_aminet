@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { detectLicenseFromText } from "../../../src/core/license/tarball-checker.js";
 
 describe("detectLicenseFromText", () => {

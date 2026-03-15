@@ -112,7 +112,7 @@ export function buildSpdxDocument(report: Report, graph: DependencyGraph): SpdxD
     documentNamespace: `https://spdx.org/spdxdocs/${rootNode?.name ?? "root"}-${randomUUID()}`,
     creationInfo: {
       created: new Date().toISOString(),
-      creators: ["Tool: ami-0.1.0"],
+      creators: ["Tool: aminet-0.1.0"],
       licenseListVersion: "3.22",
     },
     packages,

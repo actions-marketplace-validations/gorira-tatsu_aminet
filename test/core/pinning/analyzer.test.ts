@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { analyzeVersionPinning } from "../../../src/core/pinning/analyzer.js";
 
 describe("analyzeVersionPinning", () => {
@@ -52,7 +52,10 @@ describe("analyzeVersionPinning", () => {
   test("lockfile reduces drift risk", () => {
     const deps = { express: "^4.21.2", lodash: "^4.17.21" };
     const withoutLock = analyzeVersionPinning(deps, null);
-    const withLock = analyzeVersionPinning(deps, { format: "bun.lock", packages: new Map() });
+    const withLock = analyzeVersionPinning(deps, {
+      format: "pnpm-lock.yaml",
+      packages: new Map(),
+    });
 
     expect(withLock.driftRiskScore).toBeLessThan(withoutLock.driftRiskScore);
   });

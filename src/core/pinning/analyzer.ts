@@ -73,7 +73,7 @@ export function analyzeVersionPinning(
     recommendations.unshift({
       name: "(project)",
       currentRange: "-",
-      suggestion: "Add a lockfile (bun.lock or package-lock.json)",
+      suggestion: "Add a lockfile (pnpm-lock.yaml or package-lock.json)",
       reason: "Lockfiles ensure reproducible installs regardless of version ranges",
     });
   }

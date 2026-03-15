@@ -7,8 +7,8 @@
     "timestamp": "2026-03-14T13:43:43.897Z",
     "tools": [
       {
-        "vendor": "ami",
-        "name": "ami",
+        "vendor": "aminet",
+        "name": "aminet",
         "version": "0.1.0"
       }
     ]

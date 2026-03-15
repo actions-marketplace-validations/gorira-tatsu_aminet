@@ -1,14 +1,14 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { loadConfig } from "../../../src/core/config/loader.js";
 
 describe("loadConfig", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = join(tmpdir(), `ami-config-test-${Date.now()}`);
+    tmpDir = join(tmpdir(), `aminet-config-test-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
   });
 
@@ -21,13 +21,13 @@ describe("loadConfig", () => {
     expect(config).toEqual({});
   });
 
-  test("loads config from ami.config.json", () => {
+  test("loads config from aminet.config.json", () => {
     const configData = {
       denyLicenses: ["GPL-3.0"],
       depth: 5,
       concurrency: 3,
     };
-    writeFileSync(join(tmpDir, "ami.config.json"), JSON.stringify(configData));
+    writeFileSync(join(tmpDir, "aminet.config.json"), JSON.stringify(configData));
 
     const config = loadConfig(tmpDir);
     expect(config.denyLicenses).toEqual(["GPL-3.0"]);
@@ -36,7 +36,7 @@ describe("loadConfig", () => {
   });
 
   test("returns empty object for invalid JSON", () => {
-    writeFileSync(join(tmpDir, "ami.config.json"), "not json{");
+    writeFileSync(join(tmpDir, "aminet.config.json"), "not json{");
     const config = loadConfig(tmpDir);
     expect(config).toEqual({});
   });
@@ -52,7 +52,7 @@ describe("loadConfig", () => {
       concurrency: 5,
       deepLicenseCheck: true,
     };
-    writeFileSync(join(tmpDir, "ami.config.json"), JSON.stringify(configData));
+    writeFileSync(join(tmpDir, "aminet.config.json"), JSON.stringify(configData));
 
     const config = loadConfig(tmpDir);
     expect(config.denyLicenses).toEqual(["GPL-3.0", "AGPL-3.0"]);

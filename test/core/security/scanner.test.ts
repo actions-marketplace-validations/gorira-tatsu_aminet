@@ -1,15 +1,15 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import type { DependencyGraph } from "../../../src/core/graph/types.js";
 import type { NpmPackument } from "../../../src/core/registry/types.js";
 import { scanSecuritySignals } from "../../../src/core/security/scanner.js";
+import { createDatabase, type DatabaseLike } from "../../../src/core/store/adapter.js";
 import { closeDatabase, setDatabase } from "../../../src/core/store/database.js";
 import { runMigrations } from "../../../src/core/store/migrations.js";
 
-let db: Database;
+let db: DatabaseLike;
 
 beforeEach(() => {
-  db = new Database(":memory:");
+  db = createDatabase(":memory:");
   runMigrations(db);
   setDatabase(db);
 });

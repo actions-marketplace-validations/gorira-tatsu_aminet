@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { packageHash, packumentHash } from "../../../src/core/store/hash.js";
 
 describe("packageHash", () => {

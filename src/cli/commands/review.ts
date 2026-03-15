@@ -17,6 +17,7 @@ import { getDatabase } from "../../core/store/database.js";
 import { mapConcurrent } from "../../utils/concurrency.js";
 import { fetchWithRetry } from "../../utils/http.js";
 import { logger, setLogLevel } from "../../utils/logger.js";
+import { runCommand } from "../../utils/process.js";
 import type { AnalyzeOptions } from "../options.js";
 import { renderMarkdownComment } from "../output/markdown.js";
 
@@ -198,14 +199,9 @@ async function loadFileAtRefOrPath(filePath: string, ref?: string): Promise<stri
 
   // Try as git ref first
   try {
-    const proc = Bun.spawn(["git", "show", `${ref}:${filePath}`], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const text = await new Response(proc.stdout).text();
-    const exitCode = await proc.exited;
-    if (exitCode === 0 && text.trim()) {
-      return text;
+    const result = await runCommand("git", ["show", `${ref}:${filePath}`]);
+    if (result.exitCode === 0 && result.stdout.trim()) {
+      return result.stdout;
     }
   } catch {
     // Not a git ref, try as file path
@@ -225,6 +221,7 @@ async function loadAdjacentLockfile(
 
   const prefix = dirname(packageJsonPath);
   const candidates = [
+    join(prefix === "." ? "" : prefix, "pnpm-lock.yaml"),
     join(prefix === "." ? "" : prefix, "bun.lock"),
     join(prefix === "." ? "" : prefix, "package-lock.json"),
   ];
@@ -258,7 +255,7 @@ async function postOrUpdateComment(
   token: string,
 ): Promise<void> {
   const apiBase = "https://api.github.com";
-  const marker = "<!-- ami-review -->";
+  const marker = "<!-- aminet-review -->";
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github.v3+json",
