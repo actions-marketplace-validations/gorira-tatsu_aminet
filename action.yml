@@ -1,5 +1,8 @@
 name: "aminet Supply Chain Review"
 description: "Analyze dependency changes in pull requests for security, license, and vulnerability issues"
+branding:
+  icon: shield
+  color: red
 inputs:
   path:
     description: "Path to package.json"
@@ -16,6 +19,9 @@ inputs:
   security:
     description: "Enable security deep analysis"
     default: "true"
+  version:
+    description: "Published aminet version to execute. If omitted, release-tag usage resolves from GITHUB_ACTION_REF; repo-local usage falls back to dist/index.js when available."
+    required: false
 
 runs:
   using: "composite"
@@ -29,7 +35,14 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+        GITHUB_ACTION_REF: ${{ github.action_ref }}
       run: |
+        VERSION="${{ inputs.version }}"
+        ACTION_PATH="$GITHUB_ACTION_PATH"
+        ACTION_REF="$GITHUB_ACTION_REF"
+        LOCAL_ENTRY="$ACTION_PATH/dist/index.js"
+
         ARGS="${{ inputs.path }} --base ${{ github.event.pull_request.base.sha }}"
         ARGS="$ARGS --pr-number ${{ github.event.pull_request.number }}"
         ARGS="$ARGS --repo ${{ github.repository }}"
@@ -48,4 +61,20 @@ runs:
           ARGS="$ARGS --security"
         fi
 
-        npx --yes aminet@0.1.1 review $ARGS
+        if [ -n "$VERSION" ]; then
+          npx --yes aminet@"$VERSION" review $ARGS
+          exit 0
+        fi
+
+        if [ -n "$ACTION_REF" ] && [[ "$ACTION_REF" == v* ]]; then
+          npx --yes aminet@"${ACTION_REF#v}" review $ARGS
+          exit 0
+        fi
+
+        if [ -f "$LOCAL_ENTRY" ]; then
+          node "$LOCAL_ENTRY" review $ARGS
+          exit 0
+        fi
+
+        echo "Unable to determine which aminet version to run. Pass the 'version' input or use a released action tag." >&2
+        exit 1

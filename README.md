@@ -1,5 +1,10 @@
 # aminet
 
+[![npm version](https://img.shields.io/npm/v/aminet)](https://www.npmjs.com/package/aminet)
+[![npm downloads](https://img.shields.io/npm/dm/aminet)](https://www.npmjs.com/package/aminet)
+[![Dependency Review](https://github.com/gorira-tatsu/aminet/actions/workflows/ami-review.yml/badge.svg)](https://github.com/gorira-tatsu/aminet/actions/workflows/ami-review.yml)
+[![Publish](https://github.com/gorira-tatsu/aminet/actions/workflows/publish.yml/badge.svg)](https://github.com/gorira-tatsu/aminet/actions/workflows/publish.yml)
+
 `aminet` is a Node-executable CLI and GitHub Action for reviewing npm dependency risk.
 
 It analyzes dependency graphs, vulnerabilities, licenses, security signals, trust, freshness, provenance, and version pinning, then renders the result as terminal output, machine-readable JSON, SBOMs, or PR review comments.
@@ -7,7 +12,7 @@ It analyzes dependency graphs, vulnerabilities, licenses, security signals, trus
 ## Status
 
 - Early project, pre-`1.0`
-- License is not finalized yet
+- License: MIT
 - CLI and review output may still evolve
 
 ## What `aminet` does
@@ -42,6 +47,16 @@ It analyzes dependency graphs, vulnerabilities, licenses, security signals, trus
 pnpm install
 pnpm build
 node dist/index.js --help
+```
+
+## Install
+
+Official distribution is through npmjs.org.
+
+```bash
+npx aminet --help
+npm install -g aminet
+pnpm add -g aminet
 ```
 
 ## Quick start
@@ -136,10 +151,15 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: pnpm/action-setup@v4
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - uses: ./
         with:
           path: package.json
@@ -158,6 +178,12 @@ The intended release flow is tag-driven with npm trusted publishing.
 4. GitHub Actions publishes the matching npm package and creates a GitHub Release
 
 One-time prerequisite: configure npm trusted publishing for `gorira-tatsu/aminet` and the publish workflow in npm package settings.
+
+## Distribution
+
+- npmjs.org is the canonical package registry for `aminet`
+- GitHub Releases are the canonical release log and link back to npm
+- GitHub Packages is intentionally not used for now
 
 ## Output modes
 
