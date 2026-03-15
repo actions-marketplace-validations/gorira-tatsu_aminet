@@ -15,39 +15,91 @@ It analyzes dependency graphs, vulnerabilities, licenses, security signals, trus
 - License: MIT
 - CLI and review output may still evolve
 
-## What `aminet` does
+## GitHub Action
 
-- Analyze a package or project dependency graph
-- Review pull request dependency changes and post GitHub comments
-- Flag vulnerability, license, and supply chain concerns
-- Generate SPDX and CycloneDX SBOM output
-- Produce third-party notices output
+The main distribution target is GitHub Actions. `aminet` is designed to review npm dependency changes in pull requests and post or update a focused review comment.
 
-## Feature overview
+This repository ships a composite action in [`action.yml`](./action.yml).
 
-- Vulnerability scanning via OSV, GHSA, and npm audit
-- License categorization, deny-list checks, compatibility checks, and deep tarball license verification
-- Enhanced license intelligence via ClearlyDefined
-- Trust scoring from packument data, downloads, and deps.dev metadata
-- Freshness analysis for outdated or abandoned dependencies
-- Provenance checks for npm attestations
-- Phantom dependency detection
-- Version pinning analysis
-- PR review comments focused on changed direct dependencies
+Use the released action from another repository:
 
-## Requirements
+```yaml
+name: Dependency review
 
-- Node.js `>=20`
-- pnpm `>=10`
-- npm ecosystem input (`package.json`, `pnpm-lock.yaml`, or `package-lock.json`)
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "package-lock.json"
 
-## Local setup
-
-```bash
-pnpm install
-pnpm build
-node dist/index.js --help
+jobs:
+  aminet:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gorira-tatsu/aminet@v0.1.3
+        with:
+          path: package.json
+          security: "true"
 ```
+
+This action is strongest when you want:
+
+- PR comments focused on changed direct dependencies
+- vulnerability, license, and supply chain checks during review
+- one lightweight workflow step instead of custom shell glue
+
+Common inputs:
+
+- `path`: manifest path, usually `package.json`
+- `depth`: maximum dependency depth to resolve
+- `deny-license`: comma-separated SPDX IDs to block
+- `fail-on-vuln`: fail the job at or above a severity threshold
+- `security`: enable deeper security checks
+- `version`: pin the published `aminet` CLI version explicitly
+
+For repository-local usage during development:
+
+```yaml
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: ./
+        with:
+          path: package.json
+          security: "true"
+```
+
+If you want explicit version pinning instead of relying on the action tag:
+
+```yaml
+      - uses: gorira-tatsu/aminet@v0.1.3
+        with:
+          version: "0.1.3"
+          path: package.json
+          fail-on-vuln: high
+          deny-license: GPL-3.0,AGPL-3.0
+```
+
+## CLI
+
+The CLI is still the underlying engine for local analysis, CI experiments, and debugging outside pull request workflows.
 
 ## Install
 
@@ -85,6 +137,42 @@ Cache maintenance:
 npx aminet cache stats
 npx aminet cache prune
 ```
+
+## CLI commands
+
+Top-level commands:
+
+- `analyze`: dependency graph analysis for packages or local manifests
+- `ci`: JSON-oriented CI alias for `analyze`
+- `review`: PR review mode for direct dependency changes
+- `cache`: local cache inspection and pruning
+
+Use the built-in help for the complete option set:
+
+```bash
+npx aminet analyze --help
+npx aminet review --help
+```
+
+## What `aminet` does
+
+- Analyze a package or project dependency graph
+- Review pull request dependency changes and post GitHub comments
+- Flag vulnerability, license, and supply chain concerns
+- Generate SPDX and CycloneDX SBOM output
+- Produce third-party notices output
+
+## Feature overview
+
+- Vulnerability scanning via OSV, GHSA, and npm audit
+- License categorization, deny-list checks, compatibility checks, and deep tarball license verification
+- Enhanced license intelligence via ClearlyDefined
+- Trust scoring from packument data, downloads, and deps.dev metadata
+- Freshness analysis for outdated or abandoned dependencies
+- Provenance checks for npm attestations
+- Phantom dependency detection
+- Version pinning analysis
+- PR review comments focused on changed direct dependencies
 
 ## Example outputs
 
@@ -124,49 +212,31 @@ Representative review mode:
 | react | ^18.2.0 -> ^18.3.0 | 18.3.1 -> 18.3.2 | MIT |
 ```
 
-## CLI commands
+## Output modes
 
-Top-level commands:
+`analyze` can render:
 
-- `analyze`: dependency graph analysis for packages or local manifests
-- `ci`: JSON-oriented CI alias for `analyze`
-- `review`: PR review mode for direct dependency changes
-- `cache`: local cache inspection and pruning
+- human-readable table output
+- JSON
+- dependency tree output
+- Mermaid and Graphviz graphs
+- CycloneDX 1.5 SBOM
+- SPDX 2.3 SBOM
+- third-party notices output
 
-Use the built-in help for the complete option set:
+## Requirements
+
+- Node.js `>=20`
+- pnpm `>=10`
+- npm ecosystem input (`package.json`, `pnpm-lock.yaml`, or `package-lock.json`)
+
+## Local setup
 
 ```bash
-node dist/index.js analyze --help
-node dist/index.js review --help
+pnpm install
+pnpm build
+node dist/index.js --help
 ```
-
-## GitHub Action
-
-This repository includes a composite action in [`action.yml`](./action.yml).
-
-For repository-local usage during development:
-
-```yaml
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - uses: ./
-        with:
-          path: package.json
-          security: "true"
-```
-
-For remote usage after tagged releases are published, replace `uses: ./` with `uses: gorira-tatsu/aminet@v0.1.1`.
 
 ## Releasing
 
@@ -186,18 +256,6 @@ One-time prerequisite: configure npm trusted publishing for `gorira-tatsu/aminet
 - npmjs.org is the canonical package registry for `aminet`
 - GitHub Releases are the canonical release log and link back to npm
 - GitHub Packages is intentionally not used for now
-
-## Output modes
-
-`analyze` can render:
-
-- human-readable table output
-- JSON
-- dependency tree output
-- Mermaid and Graphviz graphs
-- CycloneDX 1.5 SBOM
-- SPDX 2.3 SBOM
-- third-party notices output
 
 ## Development workflow
 
