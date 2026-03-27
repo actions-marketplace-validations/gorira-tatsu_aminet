@@ -150,9 +150,9 @@ describe("Python parsing: Black pyproject.toml (extras syntax)", () => {
   });
 
   it("handles environment markers without crashing", () => {
-    // Black has deps like: "tomli>=1.1.0; python_version<'3.11'"
-    // These should be parsed (possibly with marker) but not crash
-    expect(parsed.dependencies.size).toBeGreaterThanOrEqual(4);
+    expect(parsed.dependencies.has("tomli")).toBe(false);
+    expect(parsed.dependencies.has("typing-extensions")).toBe(false);
+    expect(parsed.dependencies.size).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -204,8 +204,7 @@ describe("Python parsing: simple-requirements.txt (mixed patterns)", () => {
   });
 
   it("skips environment markers", () => {
-    // "pytest>=7.0 ; python_version >= "3.8"" should still parse the package
-    expect(deps.has("pytest")).toBe(true);
+    expect(deps.has("pytest")).toBe(false);
   });
 
   it("parses all expected dependencies", () => {
@@ -244,6 +243,21 @@ describe("Python pipeline: Flask end-to-end", () => {
     );
     expect(resolvedNames).toContain("werkzeug");
     expect(resolvedNames).toContain("jinja2");
+  });
+
+  it("preserves parsed project metadata in the virtual root package", async () => {
+    const depObj: Record<string, string> = {};
+    for (const [name, ver] of parsed.dependencies) {
+      depObj[name] = ver;
+    }
+
+    const result = await buildReportFromPackageJson(
+      { name: parsed.name, version: parsed.version ?? "0.0.0", dependencies: depObj },
+      { depth: 1, noCache: true, ecosystem: "pypi" },
+    );
+
+    expect(result.graph.root).toBe(`Flask@${parsed.version}`);
+    expect(result.report.root).toBe(`Flask@${parsed.version}`);
   });
 });
 

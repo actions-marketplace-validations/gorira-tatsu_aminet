@@ -44,6 +44,14 @@ requests==2.31.0
       const result = parseRequirementsTxt("requests\n");
       expect(result.get("requests")).toBe("");
     });
+
+    it("skips marker-gated dependencies", () => {
+      const result = parseRequirementsTxt(
+        'typing-extensions>=4.0 ; python_version < "3.11"\nrequests==2.31.0\n',
+      );
+      expect(result.has("typing-extensions")).toBe(false);
+      expect(result.get("requests")).toBe("2.31.0");
+    });
   });
 
   describe("parsePyprojectDependencies", () => {
@@ -72,6 +80,21 @@ version = "0.1.0"
 `;
       const result = parsePyprojectDependencies(content);
       expect(result.dependencies.size).toBe(0);
+    });
+
+    it("skips marker-gated pyproject dependencies", () => {
+      const content = `
+[project]
+name = "marker-test"
+version = "1.0.0"
+dependencies = [
+  "requests>=2.20",
+  "typing-extensions>=4.0; python_version < '3.11'",
+]
+`;
+      const result = parsePyprojectDependencies(content);
+      expect(result.dependencies.has("requests")).toBe(true);
+      expect(result.dependencies.has("typing-extensions")).toBe(false);
     });
   });
 });

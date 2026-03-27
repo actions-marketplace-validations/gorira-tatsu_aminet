@@ -11,6 +11,28 @@ interface QueueItem {
   parentId: string | null;
 }
 
+function isDirectReferenceSpec(versionSpec: string): boolean {
+  return /^\s*@\s*\S+/.test(versionSpec);
+}
+
+function shouldFetchExactVersion(versionSpec: string): string | null {
+  const normalized = versionSpec.trim();
+  if (normalized === "" || normalized.toLowerCase() === "latest") {
+    return null;
+  }
+
+  const pinnedMatch = normalized.match(/^==\s*(.+)$/);
+  if (pinnedMatch) {
+    return pinnedMatch[1].trim();
+  }
+
+  if (isDirectReferenceSpec(normalized) || /[<>=!^~*,]/.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
 /**
  * Resolve a Python dependency graph starting from a root package using BFS.
  *
@@ -33,16 +55,10 @@ export async function resolvePythonDependencyGraph(
   const edges: DependencyEdge[] = [];
   const semaphore = new Semaphore(concurrency);
 
-  // Fetch root package — handle "latest", empty, and range specifiers
-  const pinnedRootMatch = rootVersion.match(/^==\s*(.+)$/);
-  let rootPkg: Awaited<ReturnType<typeof getPyPIPackage>>;
-  if (pinnedRootMatch) {
-    rootPkg = await getPyPIPackage(rootName, pinnedRootMatch[1].trim());
-  } else if (!rootVersion || rootVersion === "latest" || /[<>=!^~*,]/.test(rootVersion)) {
-    rootPkg = await getPyPIPackage(rootName);
-  } else {
-    rootPkg = await getPyPIPackage(rootName, rootVersion);
-  }
+  const exactRootVersion = shouldFetchExactVersion(rootVersion);
+  const rootPkg = exactRootVersion
+    ? await getPyPIPackage(rootName, exactRootVersion)
+    : await getPyPIPackage(rootName);
   const rootId = `${rootPkg.info.name}@${rootPkg.info.version}`;
 
   const rootLicenseRaw = extractLicenseFromPyPI(rootPkg.info);
@@ -111,17 +127,21 @@ async function processQueueItem(
   const { name, versionSpec, depth, parentId } = item;
 
   // Determine whether to fetch a specific version or latest
-  const pinnedMatch = versionSpec.match(/^==\s*(.+)$/);
+  if (isDirectReferenceSpec(versionSpec)) {
+    logger.warn(`Skipping direct-reference dependency for ${name}: ${versionSpec}`);
+    return [];
+  }
+
+  const exactVersion = shouldFetchExactVersion(versionSpec);
   let pkg: Awaited<ReturnType<typeof getPyPIPackage>>;
-  if (pinnedMatch) {
-    // Pinned version - fetch exact
-    pkg = await getPyPIPackage(name, pinnedMatch[1].trim());
-  } else if (versionSpec === "") {
-    // No version constraint - fetch latest
-    pkg = await getPyPIPackage(name);
+  if (exactVersion) {
+    pkg = await getPyPIPackage(name, exactVersion);
   } else {
-    // Range specifier - fetch latest as best-effort
-    logger.debug(`Range specifier "${versionSpec}" for ${name}, fetching latest as best-effort`);
+    if (versionSpec.trim() !== "") {
+      logger.debug(
+        `Non-exact specifier "${versionSpec}" for ${name}, fetching latest as best-effort`,
+      );
+    }
     pkg = await getPyPIPackage(name);
   }
 
