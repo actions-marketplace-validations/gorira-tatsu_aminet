@@ -35,7 +35,8 @@ export function parseRequirementsTxt(content: string): Map<string, string> {
     const parsed = parsePep508(cleaned);
     if (!parsed) continue;
 
-    const { name, versionSpec } = parsed;
+    const { name, versionSpec, hasMarker } = parsed;
+    if (hasMarker) continue;
 
     // For pinned versions (==X.Y.Z), extract just the version number
     const pinnedMatch = versionSpec.match(/^==\s*(.+)$/);
@@ -97,7 +98,8 @@ function addParsedDep(dep: string, map: Map<string, string>): void {
   const parsed = parsePep508(dep);
   if (!parsed) return;
 
-  const { name, versionSpec } = parsed;
+  const { name, versionSpec, hasMarker } = parsed;
+  if (hasMarker) return;
   const pinnedMatch = versionSpec.match(/^==\s*(.+)$/);
   if (pinnedMatch) {
     map.set(name, pinnedMatch[1].trim());

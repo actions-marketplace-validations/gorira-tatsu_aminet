@@ -281,10 +281,14 @@ async function analyzePythonFile(
   const fileBaseName = basename(filePath);
 
   let deps: Map<string, string>;
+  let packageName = fileBaseName;
+  let packageVersion = "0.0.0";
 
   if (fileBaseName === "pyproject.toml" || filePath.endsWith("pyproject.toml")) {
     const parsed = parsePyprojectDependencies(content);
-    deps = parsed.dependencies;
+    deps = new Map(parsed.dependencies);
+    packageName = parsed.name ?? fileBaseName;
+    packageVersion = parsed.version ?? packageVersion;
     if (options.dev) {
       for (const [name, ver] of parsed.devDependencies) {
         deps.set(name, ver);
@@ -320,7 +324,7 @@ async function analyzePythonFile(
   }
 
   const result = await buildReportFromPackageJson(
-    { name: fileBaseName, version: "0.0.0", dependencies: depObj },
+    { name: packageName, version: packageVersion, dependencies: depObj },
     {
       depth: options.depth,
       concurrency: options.concurrency,
