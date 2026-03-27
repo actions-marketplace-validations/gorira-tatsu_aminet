@@ -1,7 +1,12 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildCycloneDxBom } from "../../../src/cli/output/cyclonedx.js";
 import type { DependencyGraph } from "../../../src/core/graph/types.js";
 import type { Report } from "../../../src/core/report/types.js";
+
+const packageVersion = JSON.parse(
+  readFileSync(new URL("../../../package.json", import.meta.url), "utf-8"),
+).version as string;
 
 function makeTestData() {
   const nodes = new Map();
@@ -105,5 +110,12 @@ describe("buildCycloneDxBom", () => {
     const bom = buildCycloneDxBom(report, graph);
 
     expect(bom.dependencies.length).toBeGreaterThan(0);
+  });
+
+  it("uses the current aminet version in tool metadata", () => {
+    const { report, graph } = makeTestData();
+    const bom = buildCycloneDxBom(report, graph);
+
+    expect(bom.metadata.tools[0].version).toBe(packageVersion);
   });
 });

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DependencyGraph } from "../../core/graph/types.js";
 import type { Report } from "../../core/report/types.js";
+import { AMINET_VERSION } from "../../version.js";
 
 interface SpdxPackage {
   SPDXID: string;
@@ -112,7 +113,7 @@ export function buildSpdxDocument(report: Report, graph: DependencyGraph): SpdxD
     documentNamespace: `https://spdx.org/spdxdocs/${rootNode?.name ?? "root"}-${randomUUID()}`,
     creationInfo: {
       created: new Date().toISOString(),
-      creators: ["Tool: aminet-0.1.1"],
+      creators: [`Tool: aminet-${AMINET_VERSION}`],
       licenseListVersion: "3.22",
     },
     packages,
