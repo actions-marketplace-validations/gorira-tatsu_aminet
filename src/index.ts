@@ -64,7 +64,10 @@ program
   .option("--provenance", "Check npm provenance attestations")
   .option("--pinning", "Analyze version pinning strategy")
   // Private package support
-  .option("--exclude-packages <list>", "Comma-separated packages to skip (supports wildcards, e.g., @scope/*)")
+  .option(
+    "--exclude-packages <list>",
+    "Comma-separated packages to skip (supports wildcards, e.g., @scope/*)",
+  )
   .option("--npm-token <token>", "npm auth token for private registries")
   .action(analyzeCommand);
 
@@ -102,7 +105,10 @@ program
   .option("--dev", "Include devDependencies")
   .option("--no-cache", "Skip cache reads")
   .option("--security", "Enable security deep analysis")
-  .option("--exclude-packages <list>", "Comma-separated packages to skip (supports wildcards, e.g., @scope/*)")
+  .option(
+    "--exclude-packages <list>",
+    "Comma-separated packages to skip (supports wildcards, e.g., @scope/*)",
+  )
   .option("--npm-token <token>", "npm auth token for private registries")
   .option("-v, --verbose", "Verbose logging")
   .option("--ci", "CI mode (no spinner)")
