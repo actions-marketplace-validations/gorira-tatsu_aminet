@@ -5,7 +5,7 @@
 [![Dependency Review](https://github.com/gorira-tatsu/aminet/actions/workflows/ami-review.yml/badge.svg)](https://github.com/gorira-tatsu/aminet/actions/workflows/ami-review.yml)
 [![Publish](https://github.com/gorira-tatsu/aminet/actions/workflows/publish.yml/badge.svg)](https://github.com/gorira-tatsu/aminet/actions/workflows/publish.yml)
 
-`aminet` is a Node-executable CLI and GitHub Action for reviewing npm dependency risk.
+`aminet` is a Node-executable CLI and GitHub Action for reviewing npm and Python dependency risk.
 
 It analyzes dependency graphs, vulnerabilities, licenses, security signals, trust, freshness, provenance, and version pinning, then renders the result as terminal output, machine-readable JSON, SBOMs, or PR review comments.
 
@@ -59,6 +59,7 @@ Common inputs:
 
 - `path`: manifest path, usually `package.json`
 - `depth`: maximum dependency depth to resolve
+- `dev`: include devDependencies in review (default: `"true"`)
 - `deny-license`: comma-separated SPDX IDs to block
 - `fail-on-vuln`: fail the job at or above a severity threshold
 - `security`: enable deeper security checks
@@ -149,10 +150,19 @@ Analyze a local project:
 npx aminet analyze package.json --security --enhanced-license --json
 ```
 
-Review dependency changes in a branch:
+Analyze Python dependencies:
+
+```bash
+npx aminet analyze requirements.txt
+npx aminet analyze pyproject.toml
+npx aminet analyze requests --ecosystem pypi
+```
+
+Review dependency changes in a branch (includes devDependencies by default):
 
 ```bash
 npx aminet review package.json --base HEAD~1 --security
+npx aminet review package.json --base HEAD~1 --no-dev  # exclude devDependencies
 ```
 
 Review with private packages (skip or authenticate):
@@ -160,6 +170,15 @@ Review with private packages (skip or authenticate):
 ```bash
 npx aminet review package.json --base HEAD~1 --exclude-packages "@scope/*"
 NPM_TOKEN=xxx npx aminet review package.json --base HEAD~1
+```
+
+Generate a config file interactively:
+
+```bash
+npx aminet init                    # interactive prompts
+npx aminet init --defaults         # non-interactive with sensible defaults
+npx aminet init --defaults --merge # merge defaults into existing config
+npx aminet init --defaults --force # overwrite existing config
 ```
 
 Cache maintenance:
@@ -176,6 +195,7 @@ Top-level commands:
 - `analyze`: dependency graph analysis for packages or local manifests
 - `ci`: JSON-oriented CI alias for `analyze`
 - `review`: PR review mode for direct dependency changes
+- `init`: generate `aminet.config.json` interactively
 - `cache`: local cache inspection and pruning
 
 Use the built-in help for the complete option set:
@@ -274,11 +294,25 @@ Representative review mode:
 - SPDX 2.3 SBOM
 - third-party notices output
 
+## Python support (experimental)
+
+aminet can analyze Python dependencies from `requirements.txt` and `pyproject.toml` files. The ecosystem is auto-detected from the file name, or you can pass `--ecosystem pypi` explicitly.
+
+**Supported input formats:**
+- `requirements.txt` with pinned (`==`) or range specifiers
+- `pyproject.toml` with PEP 621 `[project].dependencies`
+
+**Limitations:**
+- **Pinned versions (`==`) are scanned accurately.** Range specifiers resolve to the latest compatible version from PyPI, which may not match your actual environment. These are marked as best-effort in the analysis.
+- Dependencies with environment markers (e.g., `; python_version < '3.8'`) are skipped with a warning.
+- `poetry.lock`, `pdm.lock`, and `uv.lock` are not yet supported.
+- The `review` command does not yet support Python files.
+
 ## Requirements
 
 - Node.js `>=20`
 - pnpm `>=10`
-- npm ecosystem input (`package.json`, `pnpm-lock.yaml`, or `package-lock.json`)
+- npm ecosystem input (`package.json`, `pnpm-lock.yaml`, or `package-lock.json`) or Python input (`requirements.txt`, `pyproject.toml`)
 
 ## Local setup
 

@@ -2,13 +2,14 @@
 import { Command } from "commander";
 import { analyzeCommand } from "./cli/commands/analyze.js";
 import { cacheClearCommand, cachePruneCommand, cacheStatsCommand } from "./cli/commands/cache.js";
+import { initCommand } from "./cli/commands/init.js";
 import { reviewCommand } from "./cli/commands/review.js";
 
 const program = new Command();
 
 program
   .name("aminet")
-  .description("Software supply chain security tool for npm packages")
+  .description("Software supply chain security tool for npm and Python packages")
   .version("0.1.1");
 
 // analyze command
@@ -17,7 +18,7 @@ program
   .description("Analyze dependencies, licenses, and vulnerabilities")
   .argument(
     "<package>",
-    "Package (e.g., express@4.21.2) or file path (package.json, pnpm-lock.yaml)",
+    "Package (e.g., express@4.21.2) or file path (package.json, requirements.txt)",
   )
   .option("--json", "Output as JSON")
   .option("--tree", "Output as dependency tree")
@@ -69,6 +70,7 @@ program
     "Comma-separated packages to skip (supports wildcards, e.g., @scope/*)",
   )
   .option("--npm-token <token>", "npm auth token for private registries")
+  .option("--ecosystem <name>", "Package ecosystem: npm or pypi (auto-detected from file)")
   .action(analyzeCommand);
 
 // ci command (alias for analyze --ci --json)
@@ -102,7 +104,7 @@ program
   .option("--update-comment", "Update existing aminet comment instead of creating new")
   .option("-d, --depth <number>", "Maximum dependency depth", parseInt)
   .option("-c, --concurrency <number>", "Maximum concurrent requests", parseInt)
-  .option("--dev", "Include devDependencies")
+  .option("--no-dev", "Exclude devDependencies from review")
   .option("--no-cache", "Skip cache reads")
   .option("--security", "Enable security deep analysis")
   .option("--lockfile-path <path>", "Explicit path to lockfile (for monorepos)")
@@ -114,6 +116,15 @@ program
   .option("-v, --verbose", "Verbose logging")
   .option("--ci", "CI mode (no spinner)")
   .action(reviewCommand);
+
+// init command
+program
+  .command("init")
+  .description("Generate aminet.config.json interactively")
+  .option("--defaults", "Use default values (non-interactive)")
+  .option("--force", "Overwrite existing config (use with --defaults)")
+  .option("--merge", "Merge with existing config (use with --defaults)")
+  .action(initCommand);
 
 // cache commands
 const cache = program.command("cache").description("Manage the local cache");

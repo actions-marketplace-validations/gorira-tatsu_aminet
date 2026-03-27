@@ -22,6 +22,9 @@ inputs:
   lockfile-path:
     description: "Explicit path to lockfile (for monorepos)"
     required: false
+  dev:
+    description: "Include devDependencies in review (default: true)"
+    default: "true"
   exclude-packages:
     description: "Comma-separated packages to skip (supports wildcards, e.g., @scope/*)"
     required: false
@@ -36,7 +39,7 @@ runs:
   using: "composite"
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: "20"
 
@@ -75,6 +78,12 @@ runs:
         fi
         if [ -n "${{ inputs.lockfile-path }}" ]; then
           ARGS+=("--lockfile-path" "${{ inputs.lockfile-path }}")
+        fi
+        if [ -n "${{ inputs.lockfile-path }}" ]; then
+          ARGS+=("--lockfile-path" "${{ inputs.lockfile-path }}")
+        fi
+        if [ "${{ inputs.dev }}" = "false" ]; then
+          ARGS+=("--no-dev")
         fi
         if [ -n "${{ inputs.exclude-packages }}" ]; then
           ARGS+=("--exclude-packages" "${{ inputs.exclude-packages }}")

@@ -1,5 +1,5 @@
 import { access, readFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import chalk from "chalk";
 import ora from "ora";
 import { buildReportForPackageSpec } from "../../core/analyzer.js";
@@ -249,6 +249,21 @@ function computeWorkspacePath(lockfileDir: string, packageJsonDir: string): stri
   return rel && rel !== "." ? rel : undefined;
 }
 
+function toGitRelativePath(filePath: string, gitRoot: string | null): string {
+  if (!gitRoot) {
+    return filePath;
+  }
+
+  const absolutePath = isAbsolute(filePath) ? filePath : resolve(filePath);
+  const relPath = relative(gitRoot, absolutePath);
+
+  if (!relPath || relPath.startsWith("..") || isAbsolute(relPath)) {
+    return filePath;
+  }
+
+  return relPath.replace(/\\/g, "/");
+}
+
 const LOCKFILE_NAMES = ["pnpm-lock.yaml", "bun.lock", "package-lock.json"];
 
 async function loadAdjacentLockfile(
@@ -268,7 +283,7 @@ async function loadAdjacentLockfile(
   if (explicitLockfilePath) {
     try {
       const absPath = resolve(explicitLockfilePath);
-      const gitRelativePath = ref && gitRoot ? relative(gitRoot, absPath) : explicitLockfilePath;
+      const gitRelativePath = ref ? toGitRelativePath(absPath, gitRoot) : explicitLockfilePath;
       const content = await loadFileAtRefOrPath(gitRelativePath, ref);
       const lockfileDir = resolve(dirname(explicitLockfilePath));
       const workspacePath = computeWorkspacePath(lockfileDir, pkgDir);
@@ -292,7 +307,7 @@ async function loadAdjacentLockfile(
   while (true) {
     for (const lockfileName of LOCKFILE_NAMES) {
       const candidate = join(dir, lockfileName);
-      const gitRelativeCandidate = ref && gitRoot ? relative(gitRoot, candidate) : candidate;
+      const gitRelativeCandidate = ref ? toGitRelativePath(candidate, gitRoot) : candidate;
       try {
         const content = await loadFileAtRefOrPath(gitRelativeCandidate, ref);
         const workspacePath = computeWorkspacePath(dir, pkgDir);
