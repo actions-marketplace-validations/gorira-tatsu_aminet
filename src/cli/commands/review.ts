@@ -262,29 +262,39 @@ async function loadAdjacentLockfile(
 
   const pkgDir = resolve(dirname(packageJsonPath));
 
+  const gitRoot = await findGitRoot();
+
   // Explicit lockfile path takes priority
   if (explicitLockfilePath) {
     try {
-      const content = await loadFileAtRefOrPath(explicitLockfilePath, ref);
+      const absPath = resolve(explicitLockfilePath);
+      const gitRelativePath = ref && gitRoot ? relative(gitRoot, absPath) : explicitLockfilePath;
+      const content = await loadFileAtRefOrPath(gitRelativePath, ref);
       const lockfileDir = resolve(dirname(explicitLockfilePath));
       const workspacePath = computeWorkspacePath(lockfileDir, pkgDir);
       const parsed = parseLockfile(explicitLockfilePath, content, workspacePath);
       if (parsed && parsed.packages.size > 0) {
         return parsed;
       }
-    } catch {}
+    } catch (error) {
+      logger.warn(
+        `Failed to load explicit lockfile at "${explicitLockfilePath}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
     return null;
   }
 
   // Walk up from package.json directory, stopping at git root
-  const gitRoot = await findGitRoot();
   let dir = pkgDir;
 
   while (true) {
     for (const lockfileName of LOCKFILE_NAMES) {
       const candidate = join(dir, lockfileName);
+      const gitRelativeCandidate = ref && gitRoot ? relative(gitRoot, candidate) : candidate;
       try {
-        const content = await loadFileAtRefOrPath(candidate, ref);
+        const content = await loadFileAtRefOrPath(gitRelativeCandidate, ref);
         const workspacePath = computeWorkspacePath(dir, pkgDir);
         const parsed = parseLockfile(candidate, content, workspacePath);
         if (parsed && parsed.packages.size > 0) {
