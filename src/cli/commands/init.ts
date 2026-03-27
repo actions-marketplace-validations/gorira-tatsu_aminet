@@ -66,6 +66,12 @@ const CONFIG_FIELDS: ConfigField[] = [
     defaultValue: false,
   },
   {
+    key: "failOnLicense",
+    prompt: "License failure threshold (copyleft/weak-copyleft, or empty for none)",
+    type: "string",
+    defaultValue: undefined,
+  },
+  {
     key: "excludePackages",
     prompt: "Packages to exclude (comma-separated, supports wildcards)",
     type: "string[]",
@@ -94,18 +100,28 @@ export function mergeConfigs(existing: AmiConfig, defaults: AmiConfig): AmiConfi
   return merged;
 }
 
-function formatConfig(config: AmiConfig): string {
+function formatConfig(config: AmiConfig, redactSecrets = true): string {
   // Remove fields with empty arrays or undefined values for cleaner output
   const clean: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(config)) {
     if (value === undefined || value === null) continue;
     if (Array.isArray(value) && value.length === 0) continue;
+    if (redactSecrets && key === "npmToken") continue;
     clean[key] = value;
   }
   return JSON.stringify(clean, null, 2);
 }
 
+function serializeConfig(config: AmiConfig): string {
+  return formatConfig(config, false);
+}
+
 export async function initCommand(options: InitOptions): Promise<void> {
+  if (options.force && options.merge) {
+    console.error(chalk.red("--force and --merge are mutually exclusive."));
+    process.exit(1);
+  }
+
   const configPath = join(process.cwd(), CONFIG_FILENAME);
   const exists = existsSync(configPath);
 
@@ -128,7 +144,17 @@ function handleNonInteractive(configPath: string, exists: boolean, options: Init
 
   let config: AmiConfig;
   if (exists && options.merge) {
-    const existing = JSON.parse(readFileSync(configPath, "utf-8")) as AmiConfig;
+    let existing: AmiConfig;
+    try {
+      existing = JSON.parse(readFileSync(configPath, "utf-8")) as AmiConfig;
+    } catch (error) {
+      console.error(
+        chalk.red(
+          `Failed to parse ${CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+      process.exit(1);
+    }
     config = mergeConfigs(existing, defaults);
     console.log(chalk.green(`Merged defaults into existing ${CONFIG_FILENAME}`));
   } else {
@@ -136,7 +162,7 @@ function handleNonInteractive(configPath: string, exists: boolean, options: Init
     console.log(chalk.green(`Generated ${CONFIG_FILENAME} with defaults`));
   }
 
-  writeFileSync(configPath, `${formatConfig(config)}\n`, "utf-8");
+  writeFileSync(configPath, `${serializeConfig(config)}\n`, "utf-8");
   console.log(formatConfig(config));
   console.log(chalk.dim("\nTip: Set NPM_TOKEN as an environment variable for private registries."));
 }
@@ -164,7 +190,17 @@ async function handleInteractive(configPath: string, exists: boolean): Promise<v
       }
 
       if (normalized === "m") {
-        existingConfig = JSON.parse(readFileSync(configPath, "utf-8")) as AmiConfig;
+        try {
+          existingConfig = JSON.parse(readFileSync(configPath, "utf-8")) as AmiConfig;
+        } catch (error) {
+          console.error(
+            chalk.red(
+              `\n  Failed to parse ${CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+            ),
+          );
+          console.error(chalk.dim("  Fix or remove the existing config file and try again."));
+          return;
+        }
       }
     }
 
@@ -187,7 +223,7 @@ async function handleInteractive(configPath: string, exists: boolean): Promise<v
         const val =
           trimmed === ""
             ? field.defaultValue
-            : trimmed.toLowerCase() === "y" || trimmed.toLowerCase() === "true";
+            : ["y", "yes", "true"].includes(trimmed.toLowerCase());
         (config as Record<string, unknown>)[field.key] = val;
       } else if (field.type === "number") {
         if (trimmed === "") {
@@ -212,7 +248,7 @@ async function handleInteractive(configPath: string, exists: boolean): Promise<v
       }
     }
 
-    const finalConfig = existingConfig ? mergeConfigs(existingConfig, config) : config;
+    const finalConfig = existingConfig ? mergeConfigs(config, existingConfig) : config;
 
     console.log(chalk.bold("\n  Generated config:\n"));
     console.log(formatConfig(finalConfig));
@@ -223,7 +259,7 @@ async function handleInteractive(configPath: string, exists: boolean): Promise<v
       return;
     }
 
-    writeFileSync(configPath, `${formatConfig(finalConfig)}\n`, "utf-8");
+    writeFileSync(configPath, `${serializeConfig(finalConfig)}\n`, "utf-8");
     console.log(chalk.green(`\n  Wrote ${CONFIG_FILENAME}`));
     console.log(
       chalk.dim("  Tip: Set NPM_TOKEN as an environment variable for private registries."),
