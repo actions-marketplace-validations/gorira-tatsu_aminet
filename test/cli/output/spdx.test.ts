@@ -1,8 +1,12 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildSpdxDocument } from "../../../src/cli/output/spdx.js";
 import type { DependencyGraph } from "../../../src/core/graph/types.js";
 import type { Report } from "../../../src/core/report/types.js";
-import { AMINET_VERSION } from "../../../src/version.js";
+
+const packageVersion = JSON.parse(
+  readFileSync(new URL("../../../package.json", import.meta.url), "utf-8"),
+).version as string;
 
 function makeTestData() {
   const nodes = new Map();
@@ -113,6 +117,7 @@ describe("buildSpdxDocument", () => {
     const { report, graph } = makeTestData();
     const doc = buildSpdxDocument(report, graph);
 
-    expect(doc.creationInfo.creators).toContain(`Tool: aminet-${AMINET_VERSION}`);
+    expect(packageVersion).toBe("0.2.0");
+    expect(doc.creationInfo.creators).toContain(`Tool: aminet-${packageVersion}`);
   });
 });
