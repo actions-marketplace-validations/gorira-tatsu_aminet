@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildSpdxDocument } from "../../../src/cli/output/spdx.js";
 import type { DependencyGraph } from "../../../src/core/graph/types.js";
 import type { Report } from "../../../src/core/report/types.js";
+import { AMINET_VERSION } from "../../../src/version.js";
 
 function makeTestData() {
   const nodes = new Map();
@@ -106,5 +107,12 @@ describe("buildSpdxDocument", () => {
     const expressRef = doc.packages[0].externalRefs.find((r) => r.referenceType === "purl");
     expect(expressRef).toBeDefined();
     expect(expressRef!.referenceLocator).toBe("pkg:npm/express@4.21.2");
+  });
+
+  it("uses the current aminet version in creation info", () => {
+    const { report, graph } = makeTestData();
+    const doc = buildSpdxDocument(report, graph);
+
+    expect(doc.creationInfo.creators).toContain(`Tool: aminet-${AMINET_VERSION}`);
   });
 });

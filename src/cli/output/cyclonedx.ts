@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DependencyGraph } from "../../core/graph/types.js";
 import type { Report } from "../../core/report/types.js";
+import { AMINET_VERSION } from "../../version.js";
 
 interface CycloneDxComponent {
   type: string;
@@ -102,7 +103,7 @@ export function buildCycloneDxBom(report: Report, graph: DependencyGraph): Cyclo
     serialNumber: `urn:uuid:${randomUUID()}`,
     metadata: {
       timestamp: new Date().toISOString(),
-      tools: [{ vendor: "aminet", name: "aminet", version: "0.1.1" }],
+      tools: [{ vendor: "aminet", name: "aminet", version: AMINET_VERSION }],
     },
     components,
     dependencies,

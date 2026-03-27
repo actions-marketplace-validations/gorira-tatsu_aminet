@@ -4,13 +4,14 @@ import { analyzeCommand } from "./cli/commands/analyze.js";
 import { cacheClearCommand, cachePruneCommand, cacheStatsCommand } from "./cli/commands/cache.js";
 import { initCommand } from "./cli/commands/init.js";
 import { reviewCommand } from "./cli/commands/review.js";
+import { AMINET_VERSION } from "./version.js";
 
 const program = new Command();
 
 program
   .name("aminet")
   .description("Software supply chain security tool for npm and Python packages")
-  .version("0.1.1");
+  .version(AMINET_VERSION);
 
 // analyze command
 program
