@@ -12,18 +12,22 @@ import type { DependencyGraph } from "../../core/graph/types.js";
 import { checkDenyList } from "../../core/license/deny-list.js";
 import { getLicenseAlternatives } from "../../core/license/spdx.js";
 import { tryParseLockfile } from "../../core/lockfile/parser.js";
+import {
+  parsePyprojectDependencies,
+  parseRequirementsTxt,
+} from "../../core/lockfile/python-parser.js";
 import type { PhantomDependency } from "../../core/phantom/scanner.js";
 import { scanPhantomDependencies } from "../../core/phantom/scanner.js";
 import type { PinningReport } from "../../core/pinning/analyzer.js";
 import { analyzeVersionPinning } from "../../core/pinning/analyzer.js";
 import { setNpmCacheEnabled, setNpmToken } from "../../core/registry/npm-client.js";
-import { parseExcludePackages } from "../../utils/exclude.js";
 import { buildReport } from "../../core/report/builder.js";
 import type { Report } from "../../core/report/types.js";
 import { getDatabase } from "../../core/store/database.js";
 import type { VulnSource } from "../../core/vulnerability/aggregator.js";
 import { scanVulnerabilities } from "../../core/vulnerability/scanner.js";
 import type { VulnerabilityResult } from "../../core/vulnerability/types.js";
+import { parseExcludePackages } from "../../utils/exclude.js";
 import { logger, setLogLevel } from "../../utils/logger.js";
 import type { AnalyzeOptions } from "../options.js";
 import { renderCycloneDx } from "../output/cyclonedx.js";
@@ -76,9 +80,21 @@ export async function analyzeCommand(target: string, options: AnalyzeOptions): P
   const useSpinner =
     !isCi && !options.dot && !options.mermaid && !options.cyclonedx && !options.spdx;
 
+  // Auto-detect Python file mode
+  const isPythonFile =
+    target === "requirements.txt" ||
+    target.endsWith("/requirements.txt") ||
+    target === "pyproject.toml" ||
+    target.endsWith("/pyproject.toml");
+
+  if (isPythonFile) {
+    options.ecosystem = options.ecosystem ?? "pypi";
+  }
+
   // Auto-detect file mode: if target looks like a file path, treat it as --file
   const isFilePath =
     options.file ||
+    isPythonFile ||
     target.endsWith(".json") ||
     target === "package.json" ||
     target.includes("/") ||
@@ -90,7 +106,11 @@ export async function analyzeCommand(target: string, options: AnalyzeOptions): P
     target === "package-lock.json";
 
   if (isFilePath) {
-    await analyzeFile(target, options, config, useSpinner);
+    if (options.ecosystem === "pypi") {
+      await analyzePythonFile(target, options, config, useSpinner);
+    } else {
+      await analyzeFile(target, options, config, useSpinner);
+    }
     return;
   }
 
@@ -250,6 +270,61 @@ async function analyzeFile(
     phantomDeps,
     pinningReport,
   });
+}
+
+async function analyzePythonFile(
+  filePath: string,
+  options: AnalyzeOptions,
+  _config: AmiConfig,
+  useSpinner: boolean,
+): Promise<void> {
+  const content = await readFile(filePath, "utf-8");
+  const fileBaseName = basename(filePath);
+
+  let deps: Map<string, string>;
+
+  if (fileBaseName === "pyproject.toml" || filePath.endsWith("pyproject.toml")) {
+    const parsed = parsePyprojectDependencies(content);
+    deps = parsed.dependencies;
+    if (options.dev) {
+      for (const [name, ver] of parsed.devDependencies) {
+        deps.set(name, ver);
+      }
+    }
+  } else {
+    deps = parseRequirementsTxt(content);
+  }
+
+  if (deps.size === 0) {
+    console.error(chalk.yellow(`No dependencies found in ${filePath}`));
+    return;
+  }
+
+  const spinner = useSpinner
+    ? ora(`Analyzing ${deps.size} Python dependencies from ${filePath}...`).start()
+    : null;
+
+  // Build a virtual package.json-like structure for the analyzer
+  const depObj: Record<string, string> = {};
+  for (const [name, ver] of deps) {
+    depObj[name] = ver;
+  }
+
+  const result = await buildReportFromPackageJson(
+    { name: fileBaseName, version: "0.0.0", dependencies: depObj },
+    {
+      depth: options.depth,
+      concurrency: options.concurrency,
+      noCache: options.noCache,
+      ecosystem: "pypi",
+    },
+  );
+
+  if (spinner) {
+    spinner.succeed(`Resolved ${result.graph.nodes.size} packages`);
+  }
+
+  outputAndExit(result.graph, result.vulnerabilities, options, _config);
 }
 
 async function analyzePackage(
