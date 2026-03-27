@@ -38,6 +38,8 @@ node dist/index.js review package.json --base HEAD~1 --security
 - `src/core`: analysis engines, stores, and report builders
 - `src/utils`: shared HTTP, logging, and concurrency helpers
 - `test`: unit and regression coverage
+- `.claude/skills`: canonical skill definitions tracked in the repository
+- `.codex/skills`: symlink to `.claude/skills` so Codex can use the same project skills
 
 ## Branching strategy
 
