@@ -20,6 +20,7 @@ export interface AnalyzerOptions {
   provenance?: boolean;
   minTrustScore?: number;
   deepLicenseCheck?: boolean;
+  excludePackages?: string[];
 }
 
 export interface AnalysisResult {
@@ -68,7 +69,16 @@ export async function buildReportFromPackageJson(
     ...(options.dev ? (pkg.devDependencies ?? {}) : {}),
   };
 
-  const depEntries = Object.entries(allDeps);
+  const excludeList = options.excludePackages ?? [];
+  const depEntries = Object.entries(allDeps).filter(([name]) => {
+    if (excludeList.length === 0) return true;
+    return !excludeList.some((pattern) => {
+      if (pattern.includes("*")) {
+        return new RegExp(`^${pattern.replace(/\*/g, ".*")}$`).test(name);
+      }
+      return name === pattern;
+    });
+  });
   const rootId = pkg.name ? `${pkg.name}@${pkg.version ?? "0.0.0"}` : "root@0.0.0";
 
   // Create virtual root node

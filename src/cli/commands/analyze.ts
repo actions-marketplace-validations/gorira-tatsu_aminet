@@ -16,7 +16,7 @@ import type { PhantomDependency } from "../../core/phantom/scanner.js";
 import { scanPhantomDependencies } from "../../core/phantom/scanner.js";
 import type { PinningReport } from "../../core/pinning/analyzer.js";
 import { analyzeVersionPinning } from "../../core/pinning/analyzer.js";
-import { setNpmCacheEnabled } from "../../core/registry/npm-client.js";
+import { setNpmCacheEnabled, setNpmToken } from "../../core/registry/npm-client.js";
 import { buildReport } from "../../core/report/builder.js";
 import type { Report } from "../../core/report/types.js";
 import { getDatabase } from "../../core/store/database.js";
@@ -63,6 +63,10 @@ export async function analyzeCommand(target: string, options: AnalyzeOptions): P
 
   if (options.noCache) {
     setNpmCacheEnabled(false);
+  }
+
+  if (options.npmToken) {
+    setNpmToken(options.npmToken);
   }
 
   const isCi = options.ci || false;
