@@ -119,7 +119,7 @@ For each completed issue:
 
 - commit with a concise imperative message
 - push the branch with upstream tracking
-- open a PR against `stg`
+- open a PR against the resolved base branch (`stg` by default, or the user-provided override)
 - include `Closes #<n>` in the PR body
 
 Use a compact PR body:
