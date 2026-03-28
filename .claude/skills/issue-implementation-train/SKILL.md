@@ -2,7 +2,7 @@
 name: issue-implementation-train
 description: "Implement an explicit set of GitHub issues end-to-end for this repository, using isolated worktrees, one branch per issue, targeted tests, pushes, and pull requests against `stg`. Use this when the user asks to implement specific issues, execute a planned batch of roadmap issues, or drive issue work through PR-ready completion. This skill is repo-specific: it never defaults to all open issues, requires an explicit issue set, and stops after initial PR creation rather than handling review follow-up."
 argument-hint: "issues <numbers...> [--base stg]"
-allowed-tools: [Read, Glob, Grep, Bash(gh issue:*), Bash(gh pr:*), Bash(git worktree:*), Bash(git branch:*), Bash(git diff:*), Bash(git log:*), Bash(git push:*), Bash(git status:*), Bash(pnpm:*), Bash(node:*)]
+allowed-tools: [Read, Glob, Grep, Bash(gh issue:*), Bash(gh pr:*), Bash(git worktree:*), Bash(git branch:*), Bash(git diff:*), Bash(git log:*), Bash(git push:*), Bash(git status:*), Bash(git add:*), Bash(git commit:*), Bash(pnpm:*), Bash(node:*)]
 ---
 
 # Issue Implementation Train
@@ -12,6 +12,10 @@ Take an explicit batch of issues from intake to PR-ready completion.
 This skill is for **execution orchestration**, not planning. It is intentionally conservative: do not infer the target as "all open issues", and do not include post-PR review handling.
 
 ## Inputs
+
+## Arguments
+
+The user invoked this with: `$ARGUMENTS`
 
 The argument must identify the issue set explicitly. Accept:
 
@@ -95,6 +99,7 @@ Each worker prompt must include:
 ### 5. Validate before PR creation
 
 Require the worker to run the narrowest relevant tests that provide confidence.
+If relevant validation fails, stop and mark the issue as `BLOCKED` with the failure details. Do not commit, push, or open a PR.
 
 Default validation policy:
 

@@ -13,6 +13,10 @@ This skill is for **plan-to-issue conversion**, not general one-off issue drafti
 
 ## Inputs
 
+## Arguments
+
+The user invoked this with: `$ARGUMENTS`
+
 Interpret the argument in this order:
 
 - a specific report or roadmap file path under `report/`
@@ -50,12 +54,16 @@ Before proposing any issue:
 
 - search open issues for title or intent overlap
 - inspect recently closed issues when the roadmap item looks like a follow-up to already shipped work
+- compare the candidate against existing issues on:
+  - scope: what is included and excluded
+  - user-visible outcome: what changes for the user
+  - affected subsystem: command, workflow, or code area touched
 
 Use these rules:
 
 - if an open issue already covers the work, skip it
 - if a closed issue covered only an earlier MVP and the roadmap clearly describes additional work, create a new issue and mention the earlier issue in the body when helpful
-- when overlap is ambiguous, keep the candidate in the preview and flag it as a judgment call
+- when overlap is ambiguous, keep the candidate in the preview, include the checklist comparison, and flag it as an explicit judgment call
 
 ### 4. Build issue bodies from the template
 
