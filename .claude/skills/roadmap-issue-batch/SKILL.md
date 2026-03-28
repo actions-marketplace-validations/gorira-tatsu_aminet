@@ -1,6 +1,6 @@
 ---
 name: roadmap-issue-batch
-description: Create a deduplicated batch of GitHub issues from roadmap documents, release plans, or report files. Use this when the user asks to turn a roadmap into issues, create missing issues from a plan, or bulk-file issues for a version or milestone. This skill is repo-specific: it prefers `report/` planning artifacts, uses the repository issue templates, writes issue content in English, and always previews the batch before creation unless the user explicitly opts out.
+description: "Create a deduplicated batch of GitHub issues from roadmap documents, release plans, or report files. Use this when the user asks to turn a roadmap into issues, create missing issues from a plan, or bulk-file issues for a version or milestone. This skill is repo-specific: it prefers `report/` planning artifacts, uses the repository issue templates, writes issue content in English, and always previews the batch before creation unless the user explicitly opts out."
 argument-hint: "from <version|horizon|report-path>"
 allowed-tools: [Read, Glob, Grep, Bash(gh issue:*), Bash(git status:*)]
 ---

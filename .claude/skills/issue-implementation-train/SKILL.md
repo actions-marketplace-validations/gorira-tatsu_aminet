@@ -1,6 +1,6 @@
 ---
 name: issue-implementation-train
-description: Implement an explicit set of GitHub issues end-to-end for this repository, using isolated worktrees, one branch per issue, targeted tests, pushes, and pull requests against `stg`. Use this when the user asks to implement specific issues, execute a planned batch of roadmap issues, or drive issue work through PR-ready completion. This skill is repo-specific: it never defaults to all open issues, requires an explicit issue set, and stops after initial PR creation rather than handling review follow-up.
+description: "Implement an explicit set of GitHub issues end-to-end for this repository, using isolated worktrees, one branch per issue, targeted tests, pushes, and pull requests against `stg`. Use this when the user asks to implement specific issues, execute a planned batch of roadmap issues, or drive issue work through PR-ready completion. This skill is repo-specific: it never defaults to all open issues, requires an explicit issue set, and stops after initial PR creation rather than handling review follow-up."
 argument-hint: "issues <numbers...> [--base stg]"
 allowed-tools: [Read, Glob, Grep, Bash(gh issue:*), Bash(gh pr:*), Bash(git worktree:*), Bash(git branch:*), Bash(git diff:*), Bash(git log:*), Bash(git push:*), Bash(git status:*), Bash(pnpm:*), Bash(node:*)]
 ---
