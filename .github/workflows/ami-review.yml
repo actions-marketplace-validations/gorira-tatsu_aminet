@@ -4,9 +4,14 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "requirements.txt"
+      - "pyproject.toml"
       - "pnpm-lock.yaml"
       - "package-lock.json"
       - "bun.lock"
+      - "poetry.lock"
+      - "pdm.lock"
+      - "uv.lock"
 
 permissions:
   pull-requests: write
