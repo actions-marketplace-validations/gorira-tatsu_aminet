@@ -46,6 +46,14 @@ describe("loadConfig", () => {
       denyLicenses: ["GPL-3.0", "AGPL-3.0"],
       allowLicenses: ["MIT", "ISC"],
       licenseOverrides: { "pkg@1.0.0": "MIT" },
+      vulnerabilityIgnores: [
+        {
+          package: "serve",
+          advisory: "GHSA-48gc-5j93-5cfq",
+          reason: "Not affected in this version.",
+          expires: "2099-01-01",
+        },
+      ],
       failOnVuln: "high",
       failOnLicense: "copyleft",
       depth: 10,
@@ -58,6 +66,14 @@ describe("loadConfig", () => {
     expect(config.denyLicenses).toEqual(["GPL-3.0", "AGPL-3.0"]);
     expect(config.allowLicenses).toEqual(["MIT", "ISC"]);
     expect(config.licenseOverrides).toEqual({ "pkg@1.0.0": "MIT" });
+    expect(config.vulnerabilityIgnores).toEqual([
+      {
+        package: "serve",
+        advisory: "GHSA-48gc-5j93-5cfq",
+        reason: "Not affected in this version.",
+        expires: "2099-01-01",
+      },
+    ]);
     expect(config.failOnVuln).toBe("high");
     expect(config.failOnLicense).toBe("copyleft");
     expect(config.deepLicenseCheck).toBe(true);

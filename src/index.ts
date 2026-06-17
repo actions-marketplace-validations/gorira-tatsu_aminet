@@ -2,8 +2,10 @@
 import { Command } from "commander";
 import { analyzeCommand } from "./cli/commands/analyze.js";
 import { cacheClearCommand, cachePruneCommand, cacheStatsCommand } from "./cli/commands/cache.js";
+import { ignoreAddCommand, ignoreListCommand } from "./cli/commands/ignore.js";
 import { initCommand } from "./cli/commands/init.js";
 import { reviewCommand } from "./cli/commands/review.js";
+import { validateConfigCommand } from "./cli/commands/validate-config.js";
 import { AMINET_VERSION } from "./version.js";
 
 const program = new Command();
@@ -128,6 +130,34 @@ program
   .option("--force", "Overwrite existing config (use with --defaults)")
   .option("--merge", "Merge with existing config (use with --defaults)")
   .action(initCommand);
+
+// config validation command
+program
+  .command("validate-config")
+  .description("Validate aminet.config.json")
+  .argument("[path]", "Config file path", "aminet.config.json")
+  .action(validateConfigCommand);
+
+// vulnerability ignore commands
+const ignore = program.command("ignore").description("Manage vulnerability ignore rules");
+
+ignore
+  .command("add")
+  .description("Add a vulnerability ignore rule to aminet.config.json")
+  .argument("<package>", "Package name or wildcard pattern")
+  .argument("<advisory>", "Advisory ID or alias")
+  .option("--config <path>", "Config file path", "aminet.config.json")
+  .option("--source <source>", "Limit to a vulnerability source (osv, ghsa, npm-audit)")
+  .option("--versions <range>", "SemVer range where the ignore applies")
+  .requiredOption("--reason <text>", "Justification for the ignore rule")
+  .option("--expires <date>", "Review date in YYYY-MM-DD format")
+  .action(ignoreAddCommand);
+
+ignore
+  .command("list")
+  .description("List vulnerability ignore rules from aminet.config.json")
+  .option("--config <path>", "Config file path", "aminet.config.json")
+  .action(ignoreListCommand);
 
 // cache commands
 const cache = program.command("cache").description("Manage the local cache");

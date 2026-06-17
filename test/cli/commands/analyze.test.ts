@@ -130,6 +130,8 @@ describe("analyzeCommand Python lockfile support", () => {
 
   beforeEach(async () => {
     tempRoot = await mkdtemp(join(tmpdir(), "aminet-analyze-"));
+    loadConfig.mockReset();
+    loadConfig.mockReturnValue({});
     getDatabase.mockReset();
     buildReportFromPackageJson.mockReset();
     runAnalysisPhases.mockReset();
@@ -218,5 +220,45 @@ describe("analyzeCommand Python lockfile support", () => {
       exitSpy.mockRestore();
       stderrSpy.mockRestore();
     }
+  });
+
+  it("passes vulnerability ignore rules from config to file analysis", async () => {
+    const packageJsonPath = join(tempRoot, "package.json");
+    await writeFile(
+      packageJsonPath,
+      JSON.stringify({
+        name: "app",
+        version: "1.0.0",
+        dependencies: {
+          serve: "14.2.6",
+        },
+      }),
+    );
+    loadConfig.mockReturnValueOnce({
+      vulnerabilityIgnores: [
+        {
+          package: "serve",
+          advisory: "GHSA-48gc-5j93-5cfq",
+          reason: "Not affected in this version.",
+          expires: "2099-01-01",
+        },
+      ],
+    });
+
+    await analyzeCommand(packageJsonPath, { ci: true, json: true });
+
+    expect(buildReportFromPackageJson).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        vulnerabilityIgnores: [
+          {
+            package: "serve",
+            advisory: "GHSA-48gc-5j93-5cfq",
+            reason: "Not affected in this version.",
+            expires: "2099-01-01",
+          },
+        ],
+      }),
+    );
   });
 });
