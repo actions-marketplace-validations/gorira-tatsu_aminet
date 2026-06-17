@@ -301,6 +301,8 @@ Top-level commands:
 - `ci`: JSON-oriented CI alias for `analyze`
 - `review`: PR review mode for direct dependency changes
 - `init`: generate `aminet.config.json` interactively
+- `validate-config`: validate `aminet.config.json`
+- `ignore`: manage vulnerability ignore rules
 - `cache`: local cache inspection and pruning
 
 Use the built-in help for the complete option set:
@@ -308,6 +310,8 @@ Use the built-in help for the complete option set:
 ```bash
 npx aminet analyze --help
 npx aminet review --help
+npx aminet validate-config --help
+npx aminet ignore --help
 ```
 
 ## Configuration
@@ -320,6 +324,16 @@ Place an `aminet.config.json` in your project root to set defaults:
   "npmToken": "npm_...",
   "denyLicenses": ["GPL-3.0", "AGPL-3.0"],
   "allowLicenses": ["MIT", "ISC", "Apache-2.0"],
+  "vulnerabilityIgnores": [
+    {
+      "package": "serve",
+      "advisory": "GHSA-48gc-5j93-5cfq",
+      "source": "ghsa",
+      "versions": ">= 14.0.0",
+      "reason": "Not affected because the installed version is outside the vulnerable range.",
+      "expires": "2026-09-30"
+    }
+  ],
   "depth": 5,
   "concurrency": 5,
   "security": true,
@@ -328,6 +342,55 @@ Place an `aminet.config.json` in your project root to set defaults:
 ```
 
 All fields are optional. CLI flags and Action inputs override config file values. For `npmToken`, the resolution order is: CLI `--npm-token` > `NPM_TOKEN` environment variable > config file.
+
+### Vulnerability ignores
+
+Use `vulnerabilityIgnores` for reviewed false positives or temporary operational exceptions. Each rule removes only the matching advisory for the matching package; it does not skip the package or hide unrelated advisories.
+
+```json
+{
+  "vulnerabilityIgnores": [
+    {
+      "package": "path-to-regexp",
+      "advisory": "GHSA-9wv6-86v2-598j",
+      "source": "ghsa",
+      "versions": "3.3.0",
+      "reason": "The installed version is the first patched version.",
+      "expires": "2026-09-30"
+    }
+  ]
+}
+```
+
+Fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `package` | yes | Package name or wildcard pattern, such as `@scope/*`. |
+| `advisory` | yes | Advisory ID or alias, such as `GHSA-...`, `CVE-...`, or an OSV ID. |
+| `source` | no | Limit the rule to `osv`, `ghsa`, or `npm-audit`. Omit it to match any source. |
+| `versions` | no | SemVer range for installed versions where the ignore applies. Omit it only for package-wide advisory exceptions. |
+| `reason` | yes | Human-readable justification for the suppression. |
+| `expires` | recommended | Review date in `YYYY-MM-DD` format. Expired rules are not applied. |
+
+Validate config before relying on suppressions:
+
+```bash
+npx aminet validate-config
+npx aminet validate-config ./config/aminet.config.json
+```
+
+Add and inspect suppression rules from the CLI:
+
+```bash
+npx aminet ignore add serve GHSA-48gc-5j93-5cfq \
+  --source ghsa \
+  --versions ">= 14.0.0" \
+  --reason "Not affected because the installed version is outside the vulnerable range." \
+  --expires 2026-09-30
+
+npx aminet ignore list
+```
 
 ## What `aminet` does
 
@@ -340,6 +403,7 @@ All fields are optional. CLI flags and Action inputs override config file values
 ## Feature overview
 
 - Vulnerability scanning via OSV, GHSA, and npm audit
+- Advisory-level vulnerability suppressions with config validation
 - License categorization, deny-list checks, compatibility checks, and deep tarball license verification
 - Enhanced license intelligence via ClearlyDefined
 - Trust scoring from packument data, downloads, and deps.dev metadata

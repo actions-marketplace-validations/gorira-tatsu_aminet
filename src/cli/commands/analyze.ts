@@ -248,6 +248,7 @@ async function analyzeFile(
     dev: options.dev,
     noCache: options.noCache,
     excludePackages,
+    vulnerabilityIgnores: config.vulnerabilityIgnores,
   });
 
   if (spinner) {
@@ -408,6 +409,7 @@ async function analyzePythonFile(
       concurrency: options.concurrency,
       noCache: options.noCache,
       ecosystem: "pypi",
+      vulnerabilityIgnores: config.vulnerabilityIgnores,
     },
   );
 
@@ -476,7 +478,14 @@ async function analyzePackage(
   const vulnSources = parseVulnSources(options.vulnSources);
 
   const osvEcosystem = ecosystem === "pypi" ? "PyPI" : "npm";
-  const vulnerabilities = await scanPhase(graph, options, useSpinner, vulnSources, osvEcosystem);
+  const vulnerabilities = await scanPhase(
+    graph,
+    options,
+    useSpinner,
+    vulnSources,
+    osvEcosystem,
+    config.vulnerabilityIgnores,
+  );
 
   outputAndExit(graph, vulnerabilities, options, config);
 }
@@ -501,6 +510,7 @@ async function scanPhase(
   useSpinner: boolean,
   vulnSources?: VulnSource[],
   ecosystem = "npm",
+  vulnerabilityIgnores?: AmiConfig["vulnerabilityIgnores"],
 ): Promise<VulnerabilityResult[]> {
   const spinner = useSpinner ? ora("Scanning for vulnerabilities...").start() : null;
 
@@ -516,6 +526,7 @@ async function scanPhase(
       !options.noCache,
       vulnSources,
       ecosystem,
+      vulnerabilityIgnores,
     );
     const totalVulns = vulnerabilities.reduce((sum, v) => sum + v.vulnerabilities.length, 0);
     if (totalVulns > 0) {

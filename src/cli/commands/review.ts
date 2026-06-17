@@ -119,6 +119,7 @@ export async function reviewCommand(target: string, options: ReviewOptions): Pro
     noCache: options.noCache,
     security: options.security,
     ecosystem,
+    vulnerabilityIgnores: config.vulnerabilityIgnores,
   };
 
   const baseLockfile = await loadAdjacentLockfile(target, baseRef, options.lockfilePath, ecosystem);

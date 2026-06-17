@@ -1,6 +1,7 @@
 import { isExcludedPackage } from "../utils/exclude.js";
 import { logger } from "../utils/logger.js";
 import { runAnalysisPhases } from "./analysis/phases.js";
+import type { VulnerabilityIgnoreRule } from "./config/types.js";
 import { resolvePythonDependencyGraph } from "./graph/py-resolver.js";
 import { resolveDependencyGraph } from "./graph/resolver.js";
 import type { DependencyEdge, DependencyGraph, PackageNode } from "./graph/types.js";
@@ -23,6 +24,7 @@ export interface AnalyzerOptions {
   minTrustScore?: number;
   deepLicenseCheck?: boolean;
   excludePackages?: string[];
+  vulnerabilityIgnores?: VulnerabilityIgnoreRule[];
   ecosystem?: "npm" | "pypi";
 }
 
@@ -57,6 +59,7 @@ export async function buildReportForPackageSpec(
     !options.noCache,
     undefined,
     osvEcosystem,
+    options.vulnerabilityIgnores,
   ).catch(() => [] as VulnerabilityResult[]);
 
   const { reportOptions } = await runAnalysisPhases(graph, options).catch(() => ({
@@ -156,6 +159,7 @@ export async function buildReportFromPackageJson(
     !options.noCache,
     undefined,
     osvEcosystem,
+    options.vulnerabilityIgnores,
   ).catch(() => [] as VulnerabilityResult[]);
 
   const { reportOptions } = await runAnalysisPhases(graph, options).catch(() => ({
