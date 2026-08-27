@@ -16,6 +16,18 @@ Roadmap and 1.0 criteria live in [`ROADMAP.md`](./ROADMAP.md).
 - Early project, pre-`1.0`
 - License: MIT
 - CLI and review output may still evolve
+- The intended `1.x` guarantees are tracked in [`ROADMAP.md`](./ROADMAP.md)
+
+## 1.0 Target
+
+Before `1.0`, aminet is still allowed to refine CLI behavior and review presentation. The `1.0` target is to make the following contract explicit and stable:
+
+- minimum workflows: npm `analyze`/`review`, Python `analyze` for manifests and supported lockfiles, and Python `review` for `requirements.txt`/`pyproject.toml`
+- compatibility surface: documented CLI flags, GitHub Action inputs, JSON fields, and the primary PR comment sections
+- operational expectations: explicit messaging for best-effort resolution, skipped inputs, private registries, and degraded cache mode
+- release gate: documentation, regression tests, and release notes stay aligned with shipped behavior
+
+The longer checklist and post-`1.0` candidates live in [`ROADMAP.md`](./ROADMAP.md).
 
 ## GitHub Action
 
@@ -66,9 +78,21 @@ Common inputs:
 - `fail-on-vuln`: fail the job at or above a severity threshold
 - `security`: enable deeper security checks
 - `version`: pin the published `aminet` CLI version explicitly
+- `comment-id`: override the stable PR comment identifier used for updates (default: manifest path)
+- `comment-prefix`: override the human-readable label shown in the PR comment title (default: manifest path)
 - `lockfile-path`: explicit path to lockfile (for monorepos, or to pin `pyproject.toml` review with `poetry.lock`, `pdm.lock`, or `uv.lock`)
-- `exclude-packages`: comma-separated packages to skip (supports wildcards like `@scope/*`)
-- `npm-token`: npm auth token for private registry access
+- `exclude-packages`: comma-separated packages to skip intentionally (supports wildcards like `@scope/*`)
+- `npm-token`: npm auth token for private registries when private packages should be analyzed
+
+Capability guide:
+
+| Surface | Supported inputs |
+|---------|------------------|
+| `analyze` CLI | `package.json`, `pnpm-lock.yaml`, `package-lock.json`, `bun.lock`, `requirements.txt`, `pyproject.toml`, `poetry.lock`, `pdm.lock`, `uv.lock` |
+| `review` CLI | `package.json`, `requirements.txt`, `pyproject.toml` |
+| GitHub Action | wraps `review`; use `path` with `package.json`, `requirements.txt`, or `pyproject.toml` |
+
+For Python projects, the Action does not accept standalone Python lockfiles through `path`. Use `lockfile-path` to pin a `pyproject.toml` review with `poetry.lock`, `pdm.lock`, or `uv.lock`.
 
 For monorepo usage where `package.json` is in a sub-package:
 
@@ -79,6 +103,26 @@ For monorepo usage where `package.json` is in a sub-package:
           lockfile-path: pnpm-lock.yaml
 ```
 
+For matrix-based monorepo review, each manifest can keep its own compact PR comment while remaining easy to identify:
+
+```yaml
+strategy:
+  matrix:
+    path:
+      - package.json
+      - apps/backend/package.json
+      - apps/frontend/package.json
+
+steps:
+  - uses: gorira-tatsu/aminet@v0.3.0
+    with:
+      path: ${{ matrix.path }}
+      comment-prefix: ${{ matrix.path }}
+      security: "true"
+```
+
+By default, aminet uses the manifest path as both the comment update key and the displayed label. Use `comment-id` only when you need to override the update key, and `comment-prefix` when you want a shorter or friendlier title while still showing the actual manifest path inside the comment body.
+
 The review command automatically walks up parent directories to find lockfiles and reads the correct workspace section from pnpm lockfiles. Use `lockfile-path` when auto-detection does not work for your layout.
 
 For Python review from a manifest:
@@ -88,6 +132,15 @@ For Python review from a manifest:
         with:
           path: pyproject.toml
           lockfile-path: uv.lock
+          security: "true"
+```
+
+For Python review from `requirements.txt`:
+
+```yaml
+      - uses: gorira-tatsu/aminet@v0.2.1
+        with:
+          path: requirements.txt
           security: "true"
 ```
 
@@ -124,7 +177,33 @@ If you want explicit version pinning instead of relying on the action tag:
           deny-license: GPL-3.0,AGPL-3.0
 ```
 
-If your project has private packages, provide an npm token and optionally exclude packages that should not be analyzed:
+If your project has private packages, choose one of these modes:
+
+- authenticate private packages with `npm-token` / `NPM_TOKEN` when you want them included in analysis
+- skip internal packages with `exclude-packages` when they should be intentionally out of scope
+- combine both when some private packages should be analyzed and others should be skipped
+
+Action examples:
+
+Authenticate private packages:
+
+```yaml
+      - uses: gorira-tatsu/aminet@v0.1.3
+        with:
+          path: package.json
+          npm-token: ${{ secrets.NPM_TOKEN }}
+```
+
+Skip internal packages intentionally:
+
+```yaml
+      - uses: gorira-tatsu/aminet@v0.1.3
+        with:
+          path: package.json
+          exclude-packages: "@my-org/internal-*"
+```
+
+Authenticate and skip selected packages:
 
 ```yaml
       - uses: gorira-tatsu/aminet@v0.1.3
@@ -167,6 +246,7 @@ Analyze Python dependencies:
 ```bash
 npx aminet analyze requirements.txt
 npx aminet analyze pyproject.toml
+npx aminet analyze uv.lock
 npx aminet analyze requests --ecosystem pypi
 ```
 
@@ -179,11 +259,18 @@ npx aminet review requirements.txt --base HEAD~1 --security
 npx aminet review pyproject.toml --base HEAD~1 --lockfile-path uv.lock
 ```
 
-Review with private packages (skip or authenticate):
+Capability summary:
+
+- `analyze` accepts standalone Python lockfiles (`poetry.lock`, `pdm.lock`, `uv.lock`) and reads the adjacent `pyproject.toml`.
+- `review` accepts `requirements.txt` and `pyproject.toml`, not standalone Python lockfiles.
+- the GitHub Action wraps `review`, so Python lockfiles are passed through `lockfile-path` rather than `path`.
+
+Review with private packages:
 
 ```bash
-npx aminet review package.json --base HEAD~1 --exclude-packages "@scope/*"
 NPM_TOKEN=xxx npx aminet review package.json --base HEAD~1
+npx aminet review package.json --base HEAD~1 --exclude-packages "@scope/*"
+NPM_TOKEN=xxx npx aminet review package.json --base HEAD~1 --exclude-packages "@scope/internal-*"
 ```
 
 Generate a config file interactively:
@@ -204,6 +291,8 @@ npx aminet cache stats
 npx aminet cache prune
 ```
 
+If native SQLite bindings are unavailable, `analyze` and `review` still run, but aminet disables DB-backed caching in that environment. `aminet cache ...` subcommands still require the on-disk database and will exit non-zero until persistent cache support is available.
+
 ## CLI commands
 
 Top-level commands:
@@ -212,6 +301,8 @@ Top-level commands:
 - `ci`: JSON-oriented CI alias for `analyze`
 - `review`: PR review mode for direct dependency changes
 - `init`: generate `aminet.config.json` interactively
+- `validate-config`: validate `aminet.config.json`
+- `ignore`: manage vulnerability ignore rules
 - `cache`: local cache inspection and pruning
 
 Use the built-in help for the complete option set:
@@ -219,6 +310,8 @@ Use the built-in help for the complete option set:
 ```bash
 npx aminet analyze --help
 npx aminet review --help
+npx aminet validate-config --help
+npx aminet ignore --help
 ```
 
 ## Configuration
@@ -231,6 +324,16 @@ Place an `aminet.config.json` in your project root to set defaults:
   "npmToken": "npm_...",
   "denyLicenses": ["GPL-3.0", "AGPL-3.0"],
   "allowLicenses": ["MIT", "ISC", "Apache-2.0"],
+  "vulnerabilityIgnores": [
+    {
+      "package": "serve",
+      "advisory": "GHSA-48gc-5j93-5cfq",
+      "source": "ghsa",
+      "versions": ">= 14.0.0",
+      "reason": "Not affected because the installed version is outside the vulnerable range.",
+      "expires": "2026-09-30"
+    }
+  ],
   "depth": 5,
   "concurrency": 5,
   "security": true,
@@ -239,6 +342,55 @@ Place an `aminet.config.json` in your project root to set defaults:
 ```
 
 All fields are optional. CLI flags and Action inputs override config file values. For `npmToken`, the resolution order is: CLI `--npm-token` > `NPM_TOKEN` environment variable > config file.
+
+### Vulnerability ignores
+
+Use `vulnerabilityIgnores` for reviewed false positives or temporary operational exceptions. Each rule removes only the matching advisory for the matching package; it does not skip the package or hide unrelated advisories.
+
+```json
+{
+  "vulnerabilityIgnores": [
+    {
+      "package": "path-to-regexp",
+      "advisory": "GHSA-9wv6-86v2-598j",
+      "source": "ghsa",
+      "versions": "3.3.0",
+      "reason": "The installed version is the first patched version.",
+      "expires": "2026-09-30"
+    }
+  ]
+}
+```
+
+Fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `package` | yes | Package name or wildcard pattern, such as `@scope/*`. |
+| `advisory` | yes | Advisory ID or alias, such as `GHSA-...`, `CVE-...`, or an OSV ID. |
+| `source` | no | Limit the rule to `osv`, `ghsa`, or `npm-audit`. Omit it to match any source. |
+| `versions` | no | SemVer range for installed versions where the ignore applies. Omit it only for package-wide advisory exceptions. |
+| `reason` | yes | Human-readable justification for the suppression. |
+| `expires` | recommended | Review date in `YYYY-MM-DD` format. Expired rules are not applied. |
+
+Validate config before relying on suppressions:
+
+```bash
+npx aminet validate-config
+npx aminet validate-config ./config/aminet.config.json
+```
+
+Add and inspect suppression rules from the CLI:
+
+```bash
+npx aminet ignore add serve GHSA-48gc-5j93-5cfq \
+  --source ghsa \
+  --versions ">= 14.0.0" \
+  --reason "Not affected because the installed version is outside the vulnerable range." \
+  --expires 2026-09-30
+
+npx aminet ignore list
+```
 
 ## What `aminet` does
 
@@ -251,6 +403,7 @@ All fields are optional. CLI flags and Action inputs override config file values
 ## Feature overview
 
 - Vulnerability scanning via OSV, GHSA, and npm audit
+- Advisory-level vulnerability suppressions with config validation
 - License categorization, deny-list checks, compatibility checks, and deep tarball license verification
 - Enhanced license intelligence via ClearlyDefined
 - Trust scoring from packument data, downloads, and deps.dev metadata
@@ -274,11 +427,24 @@ npx aminet analyze express@4.21.2 --notices
 Representative review mode:
 
 ```text
-## aminet Dependency Review
+## aminet Dependency Review — `apps/frontend/package.json`
+Target: `apps/frontend/package.json`
+
+**Summary**: 1 updated dependency, 2 new vulnerabilities, 1 license change
+
+**Risk Level**: :red_circle: Critical
+
+### Key Alerts
+
+- 2 critical/high vulnerability alerts introduced
+- 1 dependency license alerts require review
+
+<details>
+<summary>Detailed review</summary>
 
 | Metric | Count |
 |--------|-------|
-| Added | 1 |
+| Added | 0 |
 | Removed | 0 |
 | Updated | 1 |
 | New Vulnerabilities | 2 |
@@ -291,11 +457,7 @@ Representative review mode:
 | Package | Version | Severity | Advisory | Fixed | Source | Summary |
 |---------|---------|----------|----------|-------|--------|---------|
 | minimist | 1.2.8 | CRITICAL | GHSA-... | 1.2.6 | osv | Prototype Pollution |
-
-### Updated Dependencies
-| Package | Declared | Resolved | License |
-|---------|----------|----------|---------|
-| react | ^18.2.0 -> ^18.3.0 | 18.3.1 -> 18.3.2 | MIT |
+</details>
 ```
 
 ## Output modes
@@ -316,14 +478,29 @@ aminet can analyze Python dependencies from `requirements.txt` and `pyproject.to
 
 **Supported input formats:**
 - `requirements.txt` with pinned (`==`) or range specifiers
-- `pyproject.toml` with PEP 621 `[project].dependencies`
+- `pyproject.toml` with these supported scopes:
+  - PEP 621 `[project].dependencies`
+  - `[project.optional-dependencies]` for dev-like groups: `dev`, `test`, `tests`, `docs`, `doc`, `lint`, `typing`, `typecheck`
+  - `[dependency-groups]` for the same dev-like groups, including `include-group`
+  - Poetry `[tool.poetry.dependencies]`, `[tool.poetry.dev-dependencies]`, and `[tool.poetry.group.<name>.dependencies]`
 - `poetry.lock`, `pdm.lock`, and `uv.lock` for `analyze`
+
+| Input | `analyze` | `review` | GitHub Action |
+|-------|-----------|----------|---------------|
+| `requirements.txt` | supported | supported | supported through `path` |
+| `pyproject.toml` | supported | supported | supported through `path` |
+| `poetry.lock` | supported | not a standalone input | use through `lockfile-path` with `pyproject.toml` |
+| `pdm.lock` | supported | not a standalone input | use through `lockfile-path` with `pyproject.toml` |
+| `uv.lock` | supported | not a standalone input | use through `lockfile-path` with `pyproject.toml` |
 
 **Limitations:**
 - **Pinned versions (`==`) are scanned accurately.** Range specifiers resolve to the latest compatible version from PyPI, which may not match your actual environment. These are marked as best-effort in the analysis.
 - Dependencies with environment markers (e.g., `; python_version < '3.8'`) are skipped with a warning.
-- Python lockfiles are currently `analyze` inputs, not standalone `review` inputs.
+- Poetry dependencies without a version-bearing specifier, such as local `path` or `git` sources, are currently out of scope for `pyproject.toml` parsing.
+- `requirements.txt` directives such as `-r`, `-e`, and `--index-url` are ignored and surfaced as analysis/review notes instead of being treated as package dependencies.
+- Python lockfiles are analyze-first inputs, not standalone `review` inputs.
 - `review` supports `requirements.txt` and `pyproject.toml`. When a `pyproject.toml` review has an adjacent or explicit Python lockfile, aminet uses it to pin direct dependency versions where possible.
+- The GitHub Action wraps `review`, so Python lockfiles are passed through `lockfile-path` instead of `path`.
 
 For the longer-term compatibility target, see [`ROADMAP.md`](./ROADMAP.md).
 
